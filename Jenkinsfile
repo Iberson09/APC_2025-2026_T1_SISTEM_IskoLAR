@@ -1,5 +1,3 @@
-ito Jenkinsfile ko
-
 pipeline {
   agent any
   environment {

@@ -222,56 +222,35 @@ export default function AnnouncementsPage() {
                   {/* All Announcements Section */}
                   <section>
                     <h2 className="text-lg font-medium text-gray-700 mb-4">All Announcements</h2>
-                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th scope="col" className="w-20">
-                              
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Title
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Date
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {visibleAnnouncements.map((a) => (
-                            <tr
-                              key={`list-${a.announcements_id}`}
-                              onClick={() => { setSelectedAnnouncement(a); setIsViewModalOpen(true); }}
-                              className="hover:bg-gray-50 cursor-pointer"
-                            >
-                              <td className="w-20 p-0">
-                                <div className="relative w-full h-16 bg-gray-100 flex items-center justify-center">
-                                  {a.file_path && isImageUrl(a.file_path) ? (
-                                    <>
-                                      <img src={a.file_path} alt="" className="w-full h-full object-cover" />
-                                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-white/80 pointer-events-none"></div>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4a2 2 0 012-2m14 0V7a2 2 0 00-2-2H7a2 2 0 00-2 2v4" />
-                                      </svg>
-                                      <div className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-100/90 to-white/80 pointer-events-none"></div>
-                                    </>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 relative">
-                                <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white/70 to-transparent pointer-events-none"></div>
-                                <div className="text-sm font-bold text-gray-900">{a.title}</div>
-                              </td>
-                              <td className="px-6 py-4 text-right whitespace-nowrap">
-                                <div className="text-sm text-gray-500">{formatDate(a.publish_date)}</div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                    <div className="space-y-3">
+                      {visibleAnnouncements.map((a) => (
+                        <div
+                          key={`list-${a.announcements_id}`}
+                          className="bg-white rounded-lg border border-gray-100 p-4 flex items-start gap-4 cursor-pointer hover:shadow-md transition-shadow duration-200"
+                          onClick={() => { setSelectedAnnouncement(a); setIsViewModalOpen(true); }}
+                        >
+                          <div className="flex-shrink-0 w-14 h-14 bg-gray-100 rounded-md overflow-hidden flex items-center justify-center">
+                            {a.file_path && isImageUrl(a.file_path) ? (
+                              <img src={a.file_path} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4a2 2 0 012-2m14 0V7a2 2 0 00-2-2H7a2 2 0 00-2 2v4" />
+                              </svg>
+                            )}
+                          </div>
+                          <div className="flex-grow min-w-0">
+                            <div className="flex items-center justify-between gap-4">
+                              <h3 className="text-md font-semibold text-gray-900 truncate">{a.title}</h3>
+                              {a.publish_date && (
+                                <span className="text-sm text-gray-500 flex-shrink-0">{formatDate(a.publish_date)}</span>
+                              )}
+                            </div>
+                            {a.content && (
+                              <p className="text-sm text-gray-600 mt-1 line-clamp-2">{a.content}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </section>
                 </div>

@@ -81,6 +81,8 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [userProfile, setUserProfile] = useState<ExtendedUserProfile | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerDocument, setViewerDocument] = useState<{url: string; name: string; type: string} | null>(null);
   
   // Add state for each field
   const [lastName, setLastName] = useState("");
@@ -652,8 +654,10 @@ export default function ProfilePage() {
 
   const [documents, setDocuments] = useState<Record<string, DocumentState>>({
     psa: { file: null, fileName: "", uploadProgress: 0, isUploading: false, documentId: null, error: null },
-    voter: { file: null, fileName: "", uploadProgress: 0, isUploading: false, documentId: null, error: null },
-    nationalId: { file: null, fileName: "", uploadProgress: 0, isUploading: false, documentId: null, error: null }
+    studentVoter: { file: null, fileName: "", uploadProgress: 0, isUploading: false, documentId: null, error: null },
+    guardianVoter: { file: null, fileName: "", uploadProgress: 0, isUploading: false, documentId: null, error: null },
+    barangayId: { file: null, fileName: "", uploadProgress: 0, isUploading: false, documentId: null, error: null },
+    validId: { file: null, fileName: "", uploadProgress: 0, isUploading: false, documentId: null, error: null }
   });
 
   // Function to update document state
@@ -689,14 +693,16 @@ export default function ProfilePage() {
       }
 
       // Validate file type
-      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-      if (!allowedTypes.includes(file.type)) {
-        throw new Error('File must be PDF, JPG, or PNG');
+      const uploadedFileExt = file.name.split('.').pop()?.toLowerCase();
+      const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+      
+      if (!uploadedFileExt || (!allowedExtensions.includes(uploadedFileExt) && !allowedTypes.includes(file.type))) {
+        throw new Error('File must be PDF, JPG, JPEG, or PNG format');
       }
 
-      // Upload file to Supabase storage
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${user.id}/${type}_${Date.now()}.${fileExt}`;
+      // Upload file to Supabase storage with folder structure
+      const filePath = `${user.id}/${type}/${Date.now()}_${file.name}`;
       
       // Create upload options with progress tracking
       const options = {
@@ -714,20 +720,23 @@ export default function ProfilePage() {
 
       if (uploadError) throw new Error(uploadError.message);
 
-      // Get the public URL for the uploaded file
-      const { data: publicUrlData } = await supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath);
+      // Map UI document types to database enum values
+      const documentTypeMap: Record<string, string> = {
+        'psa': 'PSA Birth Certificate',
+        'studentVoter': "Student's Voter's Certification",
+        'guardianVoter': "Guardian's Voter's Certification",
+        'barangayId': 'Barangay ID',
+        'validId': 'Valid ID or School ID'
+      };
 
       // Save document metadata to database
       const { data: docData, error: docError } = await supabase
         .from('documents')
         .insert([{
-          document_type: type.toUpperCase(),
+          document_type: documentTypeMap[type],
           file_name: file.name,
           file_path: filePath,
           file_size: file.size,
-          file_url: publicUrlData?.publicUrl || '',
           user_id: user.id,
           uploaded_at: new Date().toISOString()
         }])
@@ -745,7 +754,7 @@ export default function ProfilePage() {
         error: null
       });
 
-      setSuccessMessage(`${type.charAt(0).toUpperCase() + type.slice(1)} document uploaded successfully!`);
+      setSuccessMessage(`Document uploaded successfully!`);
       
       // Refresh the documents list
       await fetchDocuments();
@@ -778,10 +787,19 @@ export default function ProfilePage() {
 
       // Update state for each document type
       if (data) {
+        // Reverse mapping from database enum values to UI keys
+        const reverseDocumentTypeMap: Record<string, string> = {
+          'PSA Birth Certificate': 'psa',
+          "Student's Voter's Certification": 'studentVoter',
+          "Guardian's Voter's Certification": 'guardianVoter',
+          'Barangay ID': 'barangayId',
+          'Valid ID or School ID': 'validId'
+        };
+
         data.forEach(doc => {
-          const type = doc.document_type.toLowerCase();
-          if (type in documents) {
-            updateDocumentState(type, {
+          const uiType = reverseDocumentTypeMap[doc.document_type];
+          if (uiType && uiType in documents) {
+            updateDocumentState(uiType, {
               fileName: doc.file_name,
               documentId: doc.documents_id,
               uploadProgress: 100
@@ -1278,8 +1296,10 @@ export default function ProfilePage() {
             <div className="grid grid-cols-1 gap-5">
               {Object.entries(documents).map(([type, doc]) => {
                 const title = type === 'psa' ? 'PSA Birth Certificate' :
-                            type === 'voter' ? "Voter's Certification" :
-                            'National ID';
+                            type === 'studentVoter' ? "Student's Voter's Certification" :
+                            type === 'guardianVoter' ? "Guardian's Voter's Certification" :
+                            type === 'barangayId' ? "Barangay ID" :
+                            "Valid ID or School ID";
                 
                 return (
                   <div key={type}>
@@ -1336,20 +1356,43 @@ export default function ProfilePage() {
                           {doc.documentId && (
                             <button
                               type="button"
-                              className="text-[#2196F3] hover:text-[#1976D2] text-xs font-medium"
+                              className="cursor-pointer text-[#2196F3] hover:text-[#1976D2] text-xs font-medium"
                               onClick={async () => {
                                 try {
-                                  const { data } = await supabase
+                                  // Get the document details from the database first
+                                  const { data: docData, error: docError } = await supabase
+                                    .from('documents')
+                                    .select('file_path')
+                                    .eq('documents_id', doc.documentId)
+                                    .single();
+
+                                  if (docError) throw new Error('Could not find document details');
+                                  if (!docData?.file_path) throw new Error('Document path not found');
+
+                                  // Create a signed URL with the correct file path
+                                  const { data: urlData } = await supabase
                                     .storage
                                     .from('documents')
-                                    .createSignedUrl(doc.fileName, 60); // 60 seconds expiry
+                                    .createSignedUrl(docData.file_path, 3600); // 1 hour expiry
                                   
-                                  if (data?.signedUrl) {
-                                    window.open(data.signedUrl, '_blank');
+                                  if (urlData?.signedUrl) {
+                                    // Determine file type from extension
+                                    const fileExt = doc.fileName.split('.').pop()?.toLowerCase();
+                                    const type = fileExt === 'pdf' ? 'pdf' : 'image';
+
+                                    // Open document in modal
+                                    setViewerDocument({
+                                      url: urlData.signedUrl,
+                                      name: doc.fileName,
+                                      type: type
+                                    });
+                                    setViewerOpen(true);
+                                  } else {
+                                    throw new Error('Could not generate document URL');
                                   }
                                 } catch (error) {
                                   console.error('Error getting download URL:', error);
-                                  setError('Failed to download file');
+                                  setError('Failed to view document');
                                 }
                               }}
                             >
@@ -1366,6 +1409,92 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Document Viewer Modal */}
+      {viewerOpen && viewerDocument && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+            onClick={() => {
+              setViewerOpen(false);
+              setViewerDocument(null);
+            }}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-50 rounded-lg">
+                    {viewerDocument.type === 'pdf' ? (
+                      <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">{viewerDocument.name}</h3>
+                    <p className="text-sm text-gray-500">{viewerDocument.type.toUpperCase()} Document</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setViewerOpen(false);
+                    setViewerDocument(null);
+                  }}
+                  className="p-2 text-gray-400 hover:text-gray-500 rounded-full hover:bg-gray-100"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Document Viewer */}
+              <div className="p-4">
+                <div className="w-full bg-gray-50 rounded-lg overflow-hidden" style={{ height: 'calc(80vh - 200px)' }}>
+                  {viewerDocument.type === 'pdf' ? (
+                    <embed
+                      src={viewerDocument.url}
+                      type="application/pdf"
+                      width="100%"
+                      height="100%"
+                      className="border-0"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={viewerDocument.url}
+                        alt={viewerDocument.name}
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-end gap-3 p-4 border-t border-gray-200">
+                <a
+                  href={viewerDocument.url}
+                  download={viewerDocument.name}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download
+                </a>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

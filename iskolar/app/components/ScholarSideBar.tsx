@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import React from 'react';
 import { useAuth } from '@/lib/useAuth';
 import { supabase } from '@/lib/supabaseClient';
+import { ChatbotWidget } from './chatbot/ChatbotWidget';
 
 interface Semester {
   id: string;
@@ -221,8 +222,9 @@ const ScholarSidebar = () => {
   }, [pathname, activeSchoolYear]);
 
   return (
-    <aside className="fixed top-0 left-0 z-50 h-screen w-64 font-geist flex flex-col border-r bg-white border-gray-300 text-sm shadow-[4px_0_6px_-2px_rgba(0,0,0,0.1)]">
-      {/* Logo Header */}
+    <>
+      <aside className="fixed top-0 left-0 z-50 h-screen w-64 font-geist flex flex-col border-r bg-white border-gray-300 text-sm shadow-[4px_0_6px_-2px_rgba(0,0,0,0.1)]">
+        {/* Logo Header */}
       <div className="p-4 pl-7 border-b flex items-center gap-2 border-gray-300">
         <Image
           src="/IskoLAR.png"
@@ -459,7 +461,11 @@ const ScholarSidebar = () => {
           </button>
         </div>
       </div>
-    </aside>
+      </aside>
+      
+      {/* ISKAi Chatbot Widget */}
+      <ChatbotWidget />
+    </>
   );
 };
 

@@ -65,22 +65,6 @@ const ScholarSidebar = () => {
     },
   ];
 
-  const extraItems = [
-    {
-      label: 'User Manual',
-      href: '/scholar/user-manual',
-      icon: (
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-          <path
-            stroke="currentColor"
-            strokeWidth="2"
-            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-          />
-        </svg>
-      ),
-    },
-  ];
-
   const semesterSubItems = [
     { label: 'Application', href: '/academicyearID/semesterID/application' },
     { label: 'Status', href: '/academicyearID/semesterID/status' },
@@ -166,10 +150,6 @@ const ScholarSidebar = () => {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 pt-4 space-y-1">
-        {/* Main Section */}
-        <div className="py-2 px-3">
-          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Main</span>
-        </div>
 
         {mainNavItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href);
@@ -252,12 +232,12 @@ const ScholarSidebar = () => {
             {/* Semesters */}
             <div className="space-y-1">
               {/* 1st Semester */}
-              <div className="pl-8">
+              <div className="pl-6">
                 <div
                   onClick={() => setIsFirstSemOpen(!isFirstSemOpen)}
-                  className="flex items-center text-sm text-gray-700 hover:text-gray-900 cursor-pointer py-2"
+                  className="flex items-center text-sm text-gray-700 hover:text-gray-900 cursor-pointer py-2.5 px-4 -ml-6 rounded-xl hover:bg-gray-50/80 transition-all duration-200"
                 >
-                  <span>1st Semester</span>
+                  <span className="pl-2">1st Semester</span>
                   <svg 
                     className={`ml-2 w-4 h-4 text-gray-400 transition-transform duration-200 ${isFirstSemOpen ? 'rotate-180' : ''}`}
                     fill="none" 
@@ -274,10 +254,10 @@ const ScholarSidebar = () => {
                       const isActive = pathname === item.href;
                       return (
                         <Link href={item.href} key={item.href}>
-                          <div className={`py-2 px-2 text-sm rounded-lg ${
+                          <div className={`py-2.5 px-4 text-sm rounded-xl ${
                             isActive
                               ? 'text-blue-600 bg-blue-50'
-                              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50/80'
                           }`}>
                             {item.label}
                           </div>
@@ -289,12 +269,12 @@ const ScholarSidebar = () => {
               </div>
 
               {/* 2nd Semester */}
-              <div className="pl-8">
+              <div className="pl-6">
                 <div
                   onClick={() => setIsSecondSemOpen(!isSecondSemOpen)}
-                  className="flex items-center text-sm text-gray-700 hover:text-gray-900 cursor-pointer py-2"
+                  className="flex items-center text-sm text-gray-700 hover:text-gray-900 cursor-pointer py-2.5 px-4 -ml-6 rounded-xl hover:bg-gray-50/80 transition-all duration-200"
                 >
-                  <span>2nd Semester</span>
+                  <span className="pl-2">2nd Semester</span>
                   <svg 
                     className={`ml-2 w-4 h-4 text-gray-400 transition-transform duration-200 ${isSecondSemOpen ? 'rotate-180' : ''}`}
                     fill="none" 
@@ -311,10 +291,10 @@ const ScholarSidebar = () => {
                       const isActive = pathname === item.href;
                       return (
                         <Link href={item.href} key={item.href}>
-                          <div className={`py-2 px-2 text-sm rounded-lg ${
+                          <div className={`py-2.5 px-4 text-sm rounded-xl ${
                             isActive
                               ? 'text-blue-600 bg-blue-50'
-                              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50/80'
                           }`}>
                             {item.label}
                           </div>
@@ -328,36 +308,6 @@ const ScholarSidebar = () => {
           </div>
         )}
 
-        {/* Extras Section */}
-        <div className="py-2 px-3 mt-6">
-          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Extras</span>
-        </div>
-
-        {extraItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href);
-
-          return (
-            <Link href={item.href} key={item.label}>
-              <div
-                className={`group flex items-center gap-3 py-2.5 px-4 rounded-xl transition-all duration-200 cursor-pointer ${
-                  isActive
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-gray-600 hover:bg-gray-50/80'
-                }`}
-              >
-                <span className={`transition-colors duration-200 ${isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}`}>
-                  {item.icon}
-                </span>
-                <span className={`text-sm font-medium transition-colors duration-200 ${
-                  isActive ? 'text-blue-600' : 'text-gray-700 group-hover:text-gray-900'
-                }`}>{item.label}</span>
-                {isActive && (
-                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600" />
-                )}
-              </div>
-            </Link>
-          );
-        })}
       </nav>
 
       {/* Scholar Profile and Logout */}

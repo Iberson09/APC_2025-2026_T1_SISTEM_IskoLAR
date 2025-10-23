@@ -1,7 +1,7 @@
 // Type definitions matching the database schema
 
 // Enum Types
-export type AppSemester = 'First Semester' | 'Second Semester' | 'Summer Term';
+export type AppSemester = 'First Semester' | 'Second Semester';
 export type AppStatus = 'pending' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'withdrawn';
 export type UserRole = 'scholar' | 'reviewer' | 'finance' | 'super_admin';
 export type DocumentType = 

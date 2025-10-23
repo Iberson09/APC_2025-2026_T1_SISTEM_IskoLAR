@@ -122,16 +122,13 @@ export async function POST(request: NextRequest) {
     
     // Determine semester based on current month
     // First semester: August to December
-    // Second semester: January to May
-    // Third semester (Summer): June to July
+    // Second semester: January to July
     const month = currentDate.getMonth() + 1 // getMonth() returns 0-11
     let semester
-    if (month >= 6 && month <= 12) {
+    if (month >= 8 && month <= 12) {
       semester = "First Semester" // First semester
-    } else if (month >= 1 && month <= 4) {
-      semester = "Second Semester" // Second semester
     } else {
-      semester = "Summer Term" // Summer/Third semester
+      semester = "Second Semester" // Second semester (January to July)
     }
 
     // Insert into applications table

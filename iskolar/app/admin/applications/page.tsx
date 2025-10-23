@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 
 import SchoolYearSection from '@/app/components/admin/SchoolYearSection';
+import ApplicationsSection from '@/app/components/admin/ApplicationsSection';
 import { SchoolYear } from '@/lib/types/school-year';
 import AddYearModal from './AddYearModal';
 import UndoYearModal from './UndoYearModal';
@@ -75,6 +76,12 @@ export default function ApplicationsPage() {
               setYearToUndo(yearToUndo);
             }
           }}
+        />
+
+        {/* Applications Section - Shows applications grouped by semester */}
+        <ApplicationsSection 
+          schoolYears={schoolYears}
+          isLoading={isLoadingYears}
         />
       </div>
 

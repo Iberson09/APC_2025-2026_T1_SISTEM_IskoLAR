@@ -10,4 +10,4 @@ ADD COLUMN IF NOT EXISTS end_date DATE NOT NULL;
 -- Add a new, more permissive constraint for semester names
 ALTER TABLE semesters
 ADD CONSTRAINT semesters_name_check 
-CHECK (name IN ('First Semester', 'Second Semester', 'Summer'));
+CHECK (name IN ('FIRST', 'SECOND'));

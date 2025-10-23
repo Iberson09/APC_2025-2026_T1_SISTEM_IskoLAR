@@ -88,7 +88,7 @@ const AdminSidebar = () => {
       ),
     },
     {
-      label: 'User Management',
+      label:'Users',
       href: '/admin/users',
       icon: (
         <svg width="20" height="16" fill="none" viewBox="0 0 24 24">

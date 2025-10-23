@@ -401,11 +401,11 @@ export default function ApplicationPage() {
     return (
       <>
         <ScholarSideBar />
-      <div className="min-h-screen w-full bg-[#f5f6fa] pl-64 flex flex-col items-center">
-        <div className="fixed top-0 left-64 right-0 z-10 h-[60px] bg-white border-b border-gray-300 flex items-center gap-2 px-5">
-          <Image src="/icons/menu.svg" alt="Menu" width={15} height={15} />
-          <span className="text-lg font-semibold pl-2">Application</span>
-        </div>
+        <div className="min-h-screen w-full bg-[#f5f6fa] pl-64 flex flex-col items-center">
+          <div className="fixed top-0 left-64 right-0 z-10 h-[60px] bg-white border-b border-gray-300 flex items-center gap-2 px-5">
+            <Image src="/icons/menu.svg" alt="Menu" width={15} height={15} />
+            <span className="text-lg font-semibold pl-2">Application</span>
+          </div>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 mt-16">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
@@ -426,8 +426,8 @@ export default function ApplicationPage() {
               View Application Status
             </button>
           </div>
+          </div>
         </div>
-      </div>
       </>
     );
   }

@@ -406,7 +406,6 @@ const ScholarSidebar = () => {
           </div>
         )}
 
-
         {extraItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href);
 

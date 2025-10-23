@@ -1,4 +1,184 @@
-# Scholar-Side Semester-Scoped Applications Implementation
+# FORM INTEGRATION GUIDE: Complete Application Form
+
+## Overview
+The UUID-based application page needs the complete form from the old route.
+
+---
+
+# Quick Implementation Steps
+
+## Option 1: Manual Copy (Recommended for Learning)
+Read the detailed steps below to understand each component.
+
+## Option 2: Fast Track (Recommended for Speed)
+
+Since the old form is 857 lines and fully functional, the fastest approach is:
+
+### Step 1: Create Full Form Backup
+```powershell
+cd c:\Users\Iberson\Downloads\APC_2025-2026_T1_SISTEM_IskoLAR\iskolar\app\[schoolYearId]\[semesterId]\application
+cp page.tsx page_original.tsx
+```
+
+### Step 2: Copy Old Form as Base
+```powershell
+cp c:\Users\Iberson\Downloads\APC_2025-2026_T1_SISTEM_IskoLAR\iskolar\app\academicyearID\semesterID\application\page.tsx page.tsx
+```
+
+### Step 3: Apply These Edits to the Copied File
+
+**Edit 1: Fix imports (Line 4-5)**
+Change:
+```typescript
+import { useParams, useRouter } from 'next/navigation';
+```
+
+**Edit 2: Update params destructuring (around line 80)**
+Change:
+```typescript
+const params = useParams();
+const schoolYearId = params.schoolYearId as string;
+const semesterId = params.semesterId as string;
+```
+
+**Edit 3: Update data fetching (around line 100-140)**
+Replace the old data fetch logic with:
+```typescript
+useEffect(() => {
+  async function fetchData() {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/auth/sign-in');
+        return;
+      }
+
+      // Fetch semester data
+      const { data: semesterData, error: semesterError } = await supabase
+        .from('semesters')
+        .select('*, school_years(*)')
+        .eq('id', semesterId)
+        .eq('school_years.id', schoolYearId)
+        .single();
+
+      if (semesterError || !semesterData) {
+        setError('Semester not found');
+        setLoading(false);
+        return;
+      }
+
+      setSemester(semesterData);
+      setSchoolYear(semesterData.school_years);
+      setIsOpen(semesterData.applications_open);
+
+      // Check existing application
+      const { data: existingApp } = await supabase
+        .from('application_details')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('semester_id', semesterId)
+        .maybeSingle();
+
+      if (existingApp) {
+        setHasExistingApplication(true);
+      }
+    } catch (err) {
+      setError('Failed to load application page');
+    } finally {
+      setLoading(false);
+    }
+  }
+  fetchData();
+}, [schoolYearId, semesterId, router]);
+```
+
+**Edit 4: Add formatSemesterName helper (after imports, before component)**
+```typescript
+const formatSemesterName = (name: string): string => {
+  if (name === 'FIRST') return 'First Semester';
+  if (name === 'SECOND') return 'Second Semester';
+  return name;
+};
+```
+
+**Edit 5: Update semester closed message (find the section showing "Applications Closed")**
+Replace with:
+```typescript
+if (!isOpen && !loading) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
+      {/* Header */}
+      <div className="bg-white border-b sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <h1 className="text-xl font-bold text-gray-900">
+              Scholarship Application
+            </h1>
+          </div>
+        </div>
+      </div>
+
+      {/* Closed Message */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+            <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Applications Closed
+          </h2>
+          <p className="text-gray-600 mb-6">
+            {schoolYear && semester && (
+              <>
+                Applications for <span className="font-semibold">A.Y. {schoolYear.academic_year} - {schoolYear.academic_year + 1}</span>{' '}
+                <span className="font-semibold">{formatSemesterName(semester.name)}</span> are currently closed.
+              </>
+            )}
+          </p>
+          {semester?.start_date && semester?.end_date && (
+            <div className="inline-block bg-gray-50 rounded-lg px-4 py-3 mb-6">
+              <p className="text-sm text-gray-700">
+                <span className="font-medium">Semester Period:</span>{' '}
+                {new Date(semester.start_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                {' - '}
+                {new Date(semester.end_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              </p>
+            </div>
+          )}
+          <button
+            onClick={() => router.push(`/${schoolYearId}/${semesterId}/status`)}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+          >
+            View Application Status
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+**Edit 6: Update handleSubmitApplication to use semester_id**
+Find the function and ensure it inserts:
+```typescript
+const { error: insertError } = await supabase
+  .from('application_details')
+  .insert({
+    user_id: user.id,
+    semester_id: semesterId, // Use UUID instead of text fields
+    status: 'pending',
+    // ... all other form fields
+  });
+```
+
+That's it! The form will now work with UUID routing while keeping all the complete form fields.
+
+---
+
+# SCHOLAR_IMPLEMENTATION.md (Original Content Below)
 
 ## Summary of Changes
 

@@ -9,8 +9,184 @@ const inputClassName = "w-full border border-gray-300 rounded-lg px-3 py-2.5 tex
 
 // Barangay and ZIP code mapping
 export default function ApplicationPage() {
+  // Track if user has already submitted an application
+  const [hasExistingApplication, setHasExistingApplication] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   // Stepper state: 0 = Personal Info, 1 = Documents
   const [step, setStep] = useState(0);
+
+  // Handle form submission
+  const handleSubmit = async () => {
+    try {
+      setIsSubmitting(true);
+      
+      // Check authentication
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        throw new Error('Authentication error: ' + authError.message);
+      }
+      if (!user) {
+        throw new Error('Please sign in to submit your application');
+      }
+
+      console.log('Starting submission process...');
+
+      // Validate required fields
+      const requiredFields = {
+        'Junior High School Name': juniorHighName,
+        'Junior High School Address': juniorHighAddress,
+        'Junior High Year Started': juniorHighYearStarted,
+        'Junior High Year Graduated': juniorHighYearGraduated,
+        'Senior High School Name': seniorHighName,
+        'Senior High School Address': seniorHighAddress,
+        'Senior High Year Started': seniorHighYearStarted,
+        'Senior High Year Graduated': seniorHighYearGraduated,
+        'College Address': collegeAddress,
+        'Year Level': yearLevel,
+        'College Year Started': collegeYearStarted,
+        'Expected Graduation': collegeExpectedGraduation,
+        "Mother's Maiden Name": motherMaidenName,
+        "Father's Name": fatherName
+      };
+
+      const missingFields = Object.entries(requiredFields)
+        .filter(([, value]) => !value)
+        .map(([key]) => key);
+
+      if (missingFields.length > 0) {
+        throw new Error(`Please fill in the following required fields:\n${missingFields.join('\n')}`);
+      }
+
+      console.log('Required fields validated...');
+
+      // Validate document uploads
+      const requiredDocuments = [
+        { name: "PSA Birth Certificate", fileName: birthCertFileName },
+        { name: "Student's Voter's Certification", fileName: voterCertFileName },
+        { name: "Guardian's Voter's Certification", fileName: guardianVoterFileName },
+        { name: "Barangay ID", fileName: brgyIdFileName },
+        { name: "Valid ID or School ID", fileName: idFileName },
+        { name: "Certificate of Registration", fileName: regFileName },
+        { name: "Certificate of Grades", fileName: gradesFileName }
+      ];
+
+      const missingDocuments = requiredDocuments
+        .filter(doc => !doc.fileName)
+        .map(doc => doc.name);
+
+      if (missingDocuments.length > 0) {
+        throw new Error(`Please upload the following required documents:\n${missingDocuments.join('\n')}`);
+      }
+
+      console.log('Documents validated...');
+
+      // Check for existing application first
+      const { data: existingApp, error: checkError } = await supabase
+        .from('application_details')
+        .select('appdet_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw new Error('Error checking existing application: ' + checkError.message);
+      }
+
+      if (existingApp) {
+        throw new Error('You have already submitted an application');
+      }
+
+      // Start the database transaction
+      console.log('Starting database transaction...');
+
+      // 1. Save application details
+      const applicationData = {
+        user_id: user.id,
+        junior_high_school_name: juniorHighName.trim(),
+        junior_high_school_address: juniorHighAddress.trim(),
+        junior_high_year_started: parseInt(juniorHighYearStarted),
+        junior_high_year_ended: parseInt(juniorHighYearGraduated),
+        senior_high_school_name: seniorHighName.trim(),
+        senior_high_school_address: seniorHighAddress.trim(),
+        senior_high_year_started: parseInt(seniorHighYearStarted),
+        senior_high_year_ended: parseInt(seniorHighYearGraduated),
+        college_address: collegeAddress.trim(),
+        year_level: parseInt(yearLevel),
+        college_year_started: parseInt(collegeYearStarted),
+        college_year_grad: parseInt(collegeExpectedGraduation),
+        mother_maiden_name: motherMaidenName.trim(),
+        mother_occupation: motherJob ? motherJob.trim() : null,
+        father_full_name: fatherName.trim(),
+        father_occupation: fatherJob ? fatherJob.trim() : null
+      };
+
+      console.log('Saving application details...');
+      const { error: applicationError } = await supabase
+        .from('application_details')
+        .insert([applicationData])
+        .select()
+        .single();
+
+      if (applicationError) {
+        throw new Error('Failed to save application details: ' + applicationError.message);
+      }
+
+      // 2. Upload and save documents
+      console.log('Processing document uploads...');
+      
+      const documentTypeMap: Record<string, string> = {
+        'birthCert': 'PSA Birth Certificate',
+        'voterCert': 'Student\'s Voter\'s Certification',
+        'guardianVoter': 'Guardian\'s Voter\'s Certification',
+        'brgyId': 'Barangay ID',
+        'validId': 'Valid ID or School ID',
+        'regCert': 'Registration Certificate',
+        'grades': 'Certificate of Grades'
+      };
+
+      for (const [type, fileInfo] of Object.entries(uploadedFiles)) {
+        const timestamp = Date.now();
+        const filePath = `${user.id}/${type}/${timestamp}_${fileInfo.file.name}`;
+        
+        // Upload file to storage
+        const { error: uploadError } = await supabase.storage
+          .from('documents')
+          .upload(filePath, fileInfo.file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          throw new Error(`Failed to upload ${documentTypeMap[type]}: ${uploadError.message}`);
+        }
+
+        // Save document metadata
+        const { error: metadataError } = await supabase
+          .from('documents')
+          .insert([{
+            document_type: documentTypeMap[type],
+            file_name: fileInfo.file.name,
+            file_path: filePath,
+            file_size: fileInfo.file.size,
+            user_id: user.id
+          }]);
+
+        if (metadataError) {
+          throw new Error(`Failed to save metadata for ${documentTypeMap[type]}: ${metadataError.message}`);
+        }
+      }
+
+      console.log('Application submitted successfully!');
+      setHasExistingApplication(true);
+      alert('Application submitted successfully!');
+      
+    } catch (error: unknown) {
+      console.error('Error submitting application:', error);
+      alert(error instanceof Error ? error.message : 'Failed to submit application. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Personal Info from users table
   const [lastName, setLastName] = useState("");
@@ -30,40 +206,98 @@ export default function ApplicationPage() {
   const [collegeName, setCollegeName] = useState("");
   const [course, setCourse] = useState("");
 
-  // Fetch user data from database
+  // Fetch user data and check for existing application
   useEffect(() => {
     async function fetchUserData() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const { data, error } = await supabase
+        // Check for existing application
+        const { data: applicationData, error: applicationError } = await supabase
+          .from('application_details')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (applicationError && applicationError.code !== 'PGRST116') {
+          console.error('Error checking application:', applicationError);
+          return;
+        }
+
+        if (applicationData) {
+          setHasExistingApplication(true);
+          return;
+        }
+
+        // Fetch user profile if no existing application
+        const { data: userData, error: userError } = await supabase
           .from('users')
           .select('*')
           .eq('user_id', user.id)
           .single();
 
-        if (error) {
-          console.error('Error fetching user data:', error);
+        if (userError) {
+          console.error('Error fetching user data:', userError);
           return;
         }
 
-        if (data) {
-          setLastName(data.last_name);
-          setFirstName(data.first_name);
-          setMiddleName(data.middle_name || "");
-          setEmail(data.email_address);
-          setContactNumber(data.mobile_number);
-          setGender(data.gender);
-          setBirthdate(new Date(data.birthdate).toISOString().split('T')[0]);
-          setAddressLine1(data.address_line1);
-          setAddressLine2(data.address_line2 || "");
-          setBarangay(data.barangay);
-          setZipCode(data.zip_code);
-          setCollegeName(data.college_university);
-          setCourse(data.college_course);
+        if (userData) {
+          // Set user profile data
+          setLastName(userData.last_name);
+          setFirstName(userData.first_name);
+          setMiddleName(userData.middle_name || "");
+          setEmail(userData.email_address);
+          setContactNumber(userData.mobile_number);
+          setGender(userData.gender);
+          setBirthdate(new Date(userData.birthdate).toISOString().split('T')[0]);
+          setAddressLine1(userData.address_line1);
+          setAddressLine2(userData.address_line2 || "");
+          setBarangay(userData.barangay);
+          setZipCode(userData.zip_code);
+          setCollegeName(userData.college_university);
+          setCourse(userData.college_course);
         }
-      } catch (error) {
+
+        // Fetch existing documents
+        const { data: documents, error: docsError } = await supabase
+          .from('documents')
+          .select('*')
+          .eq('user_id', user.id);
+
+        if (docsError) {
+          console.error('Error fetching documents:', docsError);
+          return;
+        }
+
+          // Map documents to their respective state variables
+        if (documents) {
+          documents.forEach(doc => {
+            switch (doc.document_type) {
+              case 'PSA Birth Certificate':
+                setBirthCertFileName(doc.file_name);
+                break;
+              case 'Student\'s Voter\'s Certification':
+                setVoterCertFileName(doc.file_name);
+                break;
+              case 'Guardian\'s Voter\'s Certification':
+                setGuardianVoterFileName(doc.file_name);
+                break;
+              case 'Barangay ID':
+                setBrgyIdFileName(doc.file_name);
+                break;
+              case 'Valid ID or School ID':
+                setIdFileName(doc.file_name);
+                break;
+              case 'Registration Certificate':
+                setRegFileName(doc.file_name);
+                break;
+              case 'Certificate of Grades':
+                setGradesFileName(doc.file_name);
+                break;
+            }
+          });
+        }      } catch (error) {
         console.error('Error:', error);
       }
     }
@@ -71,18 +305,108 @@ export default function ApplicationPage() {
     fetchUserData();
   }, []);
 
-  // File validation
+  // File validation and upload
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
   const validateFile = (file: File) => {
     if (file.size > MAX_FILE_SIZE) {
       alert('File size must be less than 10MB');
       return false;
     }
-    if (file.type !== 'application/pdf') {
-      alert('Only PDF files are allowed');
+    if (!['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+      alert('Only PDF, JPG, JPEG, and PNG files are allowed');
       return false;
     }
     return true;
+  };
+
+  // Store uploaded files in memory until form submission
+  const [uploadedFiles, setUploadedFiles] = useState<Record<string, { file: File; type: string }>>({});
+
+  const handleFileUpload = async (file: File, type: string) => {
+    try {
+      console.log(`Validating file for ${type}...`);
+      
+      // Map document types to enum values
+      const documentTypeMap: Record<string, string> = {
+        'birthCert': 'PSA Birth Certificate',
+        'voterCert': 'Student\'s Voter\'s Certification',
+        'guardianVoter': 'Guardian\'s Voter\'s Certification',
+        'brgyId': 'Barangay ID',
+        'validId': 'Valid ID or School ID',
+        'regCert': 'Certificate of Registration',
+        'grades': 'Certificate of Grades'
+      };
+
+      if (!documentTypeMap[type]) {
+        throw new Error(`Invalid document type: ${type}`);
+      }
+
+      // Store the file in memory
+      setUploadedFiles(prev => ({
+        ...prev,
+        [type]: { file, type }
+      }));
+
+      // Update UI
+      console.log('Updating UI...');
+      switch (type) {
+        case 'birthCert':
+          setBirthCertFileName(file.name);
+          break;
+        case 'voterCert':
+          setVoterCertFileName(file.name);
+          break;
+        case 'guardianVoter':
+          setGuardianVoterFileName(file.name);
+          break;
+        case 'brgyId':
+          setBrgyIdFileName(file.name);
+          break;
+        case 'validId':
+          setIdFileName(file.name);
+          break;
+        case 'regCert':
+          setRegFileName(file.name);
+          break;
+        case 'grades':
+          setGradesFileName(file.name);
+          break;
+        default:
+          throw new Error(`Unknown document type: ${type}`);
+      }
+
+      console.log(`Successfully uploaded ${type}`);
+
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      // Reset the file name state for the failed upload
+      switch (type) {
+        case 'birthCert':
+          setBirthCertFileName('');
+          break;
+        case 'voterCert':
+          setVoterCertFileName('');
+          break;
+        case 'guardianVoter':
+          setGuardianVoterFileName('');
+          break;
+        case 'brgyId':
+          setBrgyIdFileName('');
+          break;
+        case 'validId':
+          setIdFileName('');
+          break;
+        case 'regCert':
+          setRegFileName('');
+          break;
+        case 'grades':
+          setGradesFileName('');
+          break;
+      }
+      
+      // Show specific error message
+      alert(error instanceof Error ? error.message : 'Failed to upload file. Please try again.');
+    }
   };
 
   const [juniorHighName, setJuniorHighName] = useState("");
@@ -105,19 +429,12 @@ export default function ApplicationPage() {
   const [fatherJob, setFatherJob] = useState("");
 
   // Document Uploads
-  const [, setRegFile] = useState<File | null>(null);
   const [regFileName, setRegFileName] = useState("");
-  const [, setBirthCertFile] = useState<File | null>(null);
   const [birthCertFileName, setBirthCertFileName] = useState("");
-  const [, setBrgyIdFile] = useState<File | null>(null);
   const [brgyIdFileName, setBrgyIdFileName] = useState("");
-  const [, setVoterCertFile] = useState<File | null>(null);
   const [voterCertFileName, setVoterCertFileName] = useState("");
-  const [, setGuardianVoterFile] = useState<File | null>(null);
   const [guardianVoterFileName, setGuardianVoterFileName] = useState("");
-  const [, setIdFile] = useState<File | null>(null);
   const [idFileName, setIdFileName] = useState("");
-  const [, setGradesFile] = useState<File | null>(null);
   const [gradesFileName, setGradesFileName] = useState("");
 
   const steps = [
@@ -125,10 +442,49 @@ export default function ApplicationPage() {
     { label: "Documents" },
   ];
 
+  if (hasExistingApplication) {
+    return (
+      <div className="min-h-screen w-full bg-[#f5f6fa] pl-64 flex items-center justify-center">
+        <div className="w-full max-w-xl px-8 -mt-32">
+          <div className="bg-white rounded-xl shadow p-8 w-full text-center">
+            <div className="mb-6">
+              <div className="mx-auto w-20 h-20 flex items-center justify-center rounded-full bg-[#e3f2fd]">
+                <svg
+                  className="w-12 h-12 text-[#2196f3]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+            </div>
+            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+              Application Already Submitted
+            </h2>
+            <p className="text-gray-600 mb-8">
+              You have already submitted an application for this semester. Please visit the status page to check your application status.
+            </p>
+            <a 
+              href="/academicyearID/semesterID/status" 
+              className="inline-block bg-[#2196f3] text-white px-8 py-3 rounded-lg font-medium shadow-md hover:bg-[#1976d2] hover:shadow-lg transition-all duration-200"
+            >
+              Check Application Status
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full bg-[#f5f6fa] pl-64 flex flex-col items-center">
-
-
       {/* Stepper */}
       <div className="w-full flex flex-col items-center pt-[80px] pb-6">
         <div className="flex justify-center w-full">
@@ -493,11 +849,11 @@ export default function ApplicationPage() {
                       type="file"
                       accept=".pdf,.jpg,.jpeg,.png"
                       className="cursor-pointer block w-full text-sm text-gray-700 bg-transparent file:mr-3 file:py-1 file:px-2 file:rounded file:border-0 file:bg-[#e3f2fd] file:text-[#1976d2] file:font-medium"
-                      onChange={e => {
+                      onChange={async (e) => {
                         if (e.target.files && e.target.files[0]) {
-                          if (validateFile(e.target.files[0])) {
-                            setBirthCertFile(e.target.files[0]);
-                            setBirthCertFileName(e.target.files[0].name);
+                          const file = e.target.files[0];
+                          if (validateFile(file)) {
+                            await handleFileUpload(file, 'birthCert');
                           } else {
                             e.target.value = '';
                             setBirthCertFileName('');
@@ -507,7 +863,7 @@ export default function ApplicationPage() {
                     />
                     <span className="text-xs text-gray-500 truncate">{birthCertFileName}</span>
                   </div>
-                  <span className="text-xs text-gray-500 ml-1">Max file size: 10MB, PDF files only</span>
+                  <span className="text-xs text-gray-500 ml-1">Max file size: 10MB. Allowed formats: PDF, PNG, JPG, JPEG</span>
                 </div>
               </div>
               {/* Student's Voter's Certification */}
@@ -518,10 +874,15 @@ export default function ApplicationPage() {
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
                     className="cursor-pointer block w-full text-sm text-gray-700 bg-transparent file:mr-3 file:py-1 file:px-2 file:rounded file:border-0 file:bg-[#e3f2fd] file:text-[#1976d2] file:font-medium"
-                    onChange={e => {
+                    onChange={async (e) => {
                       if (e.target.files && e.target.files[0]) {
-                        setVoterCertFile(e.target.files[0]);
-                        setVoterCertFileName(e.target.files[0].name);
+                        const file = e.target.files[0];
+                        if (validateFile(file)) {
+                          await handleFileUpload(file, 'voterCert');
+                        } else {
+                          e.target.value = '';
+                          setVoterCertFileName('');
+                        }
                       }
                     }}
                   />
@@ -536,10 +897,15 @@ export default function ApplicationPage() {
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
                     className="cursor-pointer block w-full text-sm text-gray-700 bg-transparent file:mr-3 file:py-1 file:px-2 file:rounded file:border-0 file:bg-[#e3f2fd] file:text-[#1976d2] file:font-medium"
-                    onChange={e => {
+                    onChange={async (e) => {
                       if (e.target.files && e.target.files[0]) {
-                        setGuardianVoterFile(e.target.files[0]);
-                        setGuardianVoterFileName(e.target.files[0].name);
+                        const file = e.target.files[0];
+                        if (validateFile(file)) {
+                          await handleFileUpload(file, 'guardianVoter');
+                        } else {
+                          e.target.value = '';
+                          setGuardianVoterFileName('');
+                        }
                       }
                     }}
                   />
@@ -554,10 +920,15 @@ export default function ApplicationPage() {
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
                     className="cursor-pointer block w-full text-sm text-gray-700 bg-transparent file:mr-3 file:py-1 file:px-2 file:rounded file:border-0 file:bg-[#e3f2fd] file:text-[#1976d2] file:font-medium"
-                    onChange={e => {
+                    onChange={async (e) => {
                       if (e.target.files && e.target.files[0]) {
-                        setBrgyIdFile(e.target.files[0]);
-                        setBrgyIdFileName(e.target.files[0].name);
+                        const file = e.target.files[0];
+                        if (validateFile(file)) {
+                          await handleFileUpload(file, 'brgyId');
+                        } else {
+                          e.target.value = '';
+                          setBrgyIdFileName('');
+                        }
                       }
                     }}
                   />
@@ -572,10 +943,15 @@ export default function ApplicationPage() {
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
                     className="cursor-pointer block w-full text-sm text-gray-700 bg-transparent file:mr-3 file:py-1 file:px-2 file:rounded file:border-0 file:bg-[#e3f2fd] file:text-[#1976d2] file:font-medium"
-                    onChange={e => {
+                    onChange={async (e) => {
                       if (e.target.files && e.target.files[0]) {
-                        setIdFile(e.target.files[0]);
-                        setIdFileName(e.target.files[0].name);
+                        const file = e.target.files[0];
+                        if (validateFile(file)) {
+                          await handleFileUpload(file, 'validId');
+                        } else {
+                          e.target.value = '';
+                          setIdFileName('');
+                        }
                       }
                     }}
                   />
@@ -591,11 +967,10 @@ export default function ApplicationPage() {
                       type="file"
                       accept=".pdf,.jpg,.jpeg,.png"
                       className="cursor-pointer block w-full text-sm text-gray-700 bg-transparent file:mr-3 file:py-1 file:px-2 file:rounded file:border-0 file:bg-[#e3f2fd] file:text-[#1976d2] file:font-medium"
-                      onChange={e => {
+                      onChange={async e => {
                         if (e.target.files && e.target.files[0]) {
                           if (validateFile(e.target.files[0])) {
-                            setRegFile(e.target.files[0]);
-                            setRegFileName(e.target.files[0].name);
+                            await handleFileUpload(e.target.files[0], 'regCert');
                           } else {
                             e.target.value = '';
                             setRegFileName('');
@@ -605,7 +980,7 @@ export default function ApplicationPage() {
                     />
                     <span className="text-xs text-gray-500 truncate">{regFileName}</span>
                   </div>
-                  <span className="text-xs text-gray-500 ml-1">Max file size: 10MB, PDF files only</span>
+                  <span className="text-xs text-gray-500 ml-1">Max file size: 10MB. Allowed formats: PDF, PNG, JPG, JPEG</span>
                 </div>
               </div>
               {/* Certificate of Grades */}
@@ -616,10 +991,15 @@ export default function ApplicationPage() {
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
                     className="cursor-pointer block w-full text-sm text-gray-700 bg-transparent file:mr-3 file:py-1 file:px-2 file:rounded file:border-0 file:bg-[#e3f2fd] file:text-[#1976d2] file:font-medium"
-                    onChange={e => {
+                    onChange={async (e) => {
                       if (e.target.files && e.target.files[0]) {
-                        setGradesFile(e.target.files[0]);
-                        setGradesFileName(e.target.files[0].name);
+                        const file = e.target.files[0];
+                        if (validateFile(file)) {
+                          await handleFileUpload(file, 'grades');
+                        } else {
+                          e.target.value = '';
+                          setGradesFileName('');
+                        }
                       }
                     }}
                   />
@@ -636,11 +1016,12 @@ export default function ApplicationPage() {
                 Back
               </button>
               <button
-                className="cursor-pointer bg-[#2196f3] text-white px-8 py-2 rounded-lg font-medium shadow hover:bg-[#1976d2] transition"
-                onClick={() => alert("Submitted!")}
+                className="cursor-pointer bg-[#2196f3] text-white px-8 py-2 rounded-lg font-medium shadow hover:bg-[#1976d2] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleSubmit}
+                disabled={isSubmitting}
                 type="button"
               >
-                Submit Application
+                {isSubmitting ? 'Submitting...' : 'Submit Application'}
               </button>
             </div>
           </div>

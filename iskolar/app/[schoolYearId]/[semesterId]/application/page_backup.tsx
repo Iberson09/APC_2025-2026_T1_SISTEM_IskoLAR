@@ -3,49 +3,19 @@
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { useParams, useRouter } from 'next/navigation';
-import ScholarSideBar from "@/app/components/ScholarSideBar";
 
 // Common input style
 const inputClassName = "w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm transition-all duration-200 focus:ring-2 focus:ring-[#2196f3] focus:border-[#2196f3] focus:outline-none bg-white hover:border-gray-400";
 
-// Helper to format semester name
-const formatSemesterName = (name: string): string => {
-  if (name === 'FIRST') return 'First Semester';
-  if (name === 'SECOND') return 'Second Semester';
-  return name;
-};
-
 export default function ApplicationPage() {
-  const params = useParams();
-  const router = useRouter();
-  const schoolYearId = params.schoolYearId as string;
-  const semesterId = params.semesterId as string;
-
-  // Routing and validation states
-  const [schoolYear, setSchoolYear] = useState<any>(null);
-  const [semester, setSemester] = useState<any>(null);
-  const [isOpen, setIsOpen] = useState(false);
-  const [hasExistingApplication, setHasExistingApplication] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   // Stepper state: 0 = Personal Info, 1 = Documents
   const [step, setStep] = useState(0);
   const [userName, setUserName] = useState("");
 
-  // Fetch school year, semester, and check application status
   useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          router.push('/auth/sign-in');
-          return;
-        }
-
-        // Fetch user data for display
+    const fetchUserData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
         const { data: userData } = await supabase
           .from('users')
           .select('first_name, last_name')
@@ -55,45 +25,11 @@ export default function ApplicationPage() {
         if (userData) {
           setUserName(`${userData.first_name} ${userData.last_name}`);
         }
-
-        // Fetch semester data with school year
-        const { data: semesterData, error: semesterError } = await supabase
-          .from('semesters')
-          .select('*, school_years(*)')
-          .eq('id', semesterId)
-          .eq('school_years.id', schoolYearId)
-          .single();
-
-        if (semesterError || !semesterData) {
-          setError('Semester not found');
-          setLoading(false);
-          return;
-        }
-
-        setSemester(semesterData);
-        setSchoolYear(semesterData.school_years);
-        setIsOpen(semesterData.applications_open);
-
-        // Check for existing application
-        const { data: existingApp } = await supabase
-          .from('application_details')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('semester_id', semesterId)
-          .maybeSingle();
-
-        if (existingApp) {
-          setHasExistingApplication(true);
-        }
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Failed to load application page');
-      } finally {
-        setLoading(false);
       }
-    }
-    fetchData();
-  }, [schoolYearId, semesterId, router]);
+    };
+
+    fetchUserData();
+  }, []);
 
   // Personal Info
   const [lastName, setLastName] = useState("");
@@ -217,225 +153,9 @@ export default function ApplicationPage() {
 
   const [open, setOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  // Handle form submission
-  const handleSubmitApplication = async () => {
-    // Validation
-    if (!lastName || !firstName || !email || !contactNumber || !gender || !birthdate) {
-      alert('Please fill in all required personal information fields');
-      setStep(0);
-      return;
-    }
-
-    if (!validateZipCode(zipCode)) {
-      alert('Please enter a valid 4-digit zip code');
-      setStep(0);
-      return;
-    }
-
-    if (!regFileName || !birthCertFileName) {
-      alert('Please upload required documents: Certificate of Registration and Birth Certificate');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        alert('You must be logged in to submit an application');
-        router.push('/auth/sign-in');
-        return;
-      }
-
-      // Insert application
-      const { error: insertError } = await supabase
-        .from('application_details')
-        .insert({
-          user_id: user.id,
-          semester_id: semesterId,
-          status: 'pending',
-          last_name: lastName,
-          first_name: firstName,
-          middle_name: middleName,
-          email_address: email,
-          contact_number: contactNumber,
-          gender: gender,
-          birthdate: birthdate,
-          years_of_residency: yearsOfResidency ? parseInt(yearsOfResidency) : null,
-          address_line1: addressLine1,
-          address_line2: addressLine2,
-          barangay: barangay,
-          city: city,
-          province: province,
-          zip_code: zipCode,
-          region: region,
-          junior_high_name: juniorHighName,
-          junior_high_address: juniorHighAddress,
-          junior_high_year_started: juniorHighYearStarted,
-          junior_high_year_graduated: juniorHighYearGraduated,
-          junior_high_honors: juniorHighHonors,
-          senior_high_name: seniorHighName,
-          senior_high_address: seniorHighAddress,
-          senior_high_year_started: seniorHighYearStarted,
-          senior_high_year_graduated: seniorHighYearGraduated,
-          senior_high_strand: seniorHighStrand,
-          senior_high_honors: seniorHighHonors,
-          college_name: collegeName,
-          college_address: collegeAddress,
-          year_level: yearLevel,
-          course: course,
-          college_year_started: collegeYearStarted,
-          college_expected_graduation: collegeExpectedGraduation,
-          college_gpa: collegeGPA ? parseFloat(collegeGPA) : null,
-          mother_maiden_name: motherMaidenName,
-          mother_job: motherJob,
-          father_name: fatherName,
-          father_job: fatherJob,
-        });
-
-      if (insertError) {
-        console.error('Error submitting application:', insertError);
-        alert('Failed to submit application. Please try again.');
-        return;
-      }
-
-      alert('Application submitted successfully!');
-      router.push(`/${schoolYearId}/${semesterId}/status`);
-    } catch (error) {
-      console.error('Error:', error);
-      alert('An error occurred while submitting your application');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Loading state
-  if (loading) {
-    return (
-      <>
-        <ScholarSideBar />
-        <div className="min-h-screen w-full bg-[#f5f6fa] pl-64 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading...</p>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <>
-        <ScholarSideBar />
-        <div className="min-h-screen w-full bg-[#f5f6fa] pl-64 flex items-center justify-center">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-md text-center">
-            <div className="text-red-600 mb-4">
-              <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Error</h2>
-            <p className="text-gray-600">{error}</p>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  // Semester closed message
-  if (!isOpen) {
-    return (
-      <>
-        <ScholarSideBar />
-        <div className="min-h-screen w-full bg-[#f5f6fa] pl-64 flex flex-col items-center">
-          <div className="fixed top-0 left-64 right-0 z-10 h-[60px] bg-white border-b border-gray-300 flex items-center gap-2 px-5">
-            <Image src="/icons/menu.svg" alt="Menu" width={15} height={15} />
-            <span className="text-lg font-semibold pl-2">Application</span>
-          </div>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 mt-16">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
-              <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Applications Closed
-            </h2>
-            <p className="text-gray-600 mb-6">
-              {schoolYear && semester && (
-                <>
-                  Applications for <span className="font-semibold">A.Y. {schoolYear.academic_year} - {schoolYear.academic_year + 1}</span>{' '}
-                  <span className="font-semibold">{formatSemesterName(semester.name)}</span> are currently closed.
-                </>
-              )}
-            </p>
-            {semester?.start_date && semester?.end_date && (
-              <div className="inline-block bg-gray-50 rounded-lg px-4 py-3 mb-6">
-                <p className="text-sm text-gray-700">
-                  <span className="font-medium">Semester Period:</span>{' '}
-                  {new Date(semester.start_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                  {' - '}
-                  {new Date(semester.end_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                </p>
-              </div>
-            )}
-            <button
-              onClick={() => router.push(`/${schoolYearId}/${semesterId}/status`)}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-            >
-              View Application Status
-            </button>
-          </div>
-        </div>
-      </div>
-      </>
-    );
-  }
-
-  // Existing application check
-  if (hasExistingApplication) {
-    return (
-      <>
-        <ScholarSideBar />
-      <div className="min-h-screen w-full bg-[#f5f6fa] pl-64 flex flex-col items-center">
-        <div className="fixed top-0 left-64 right-0 z-10 h-[60px] bg-white border-b border-gray-300 flex items-center gap-2 px-5">
-          <Image src="/icons/menu.svg" alt="Menu" width={15} height={15} />
-          <span className="text-lg font-semibold pl-2">Application</span>
-        </div>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 mt-16">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
-              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Application Already Submitted
-            </h2>
-            <p className="text-gray-600 mb-6">
-              You have already submitted an application for this semester.
-            </p>
-            <button
-              onClick={() => router.push(`/${schoolYearId}/${semesterId}/status`)}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-            >
-              View Application Status
-            </button>
-          </div>
-        </div>
-      </div>
-      </>
-    );
-  }
 
   return (
-    <>
-      <ScholarSideBar />
-      <div className="min-h-screen w-full bg-[#f5f6fa] pl-64 flex flex-col items-center">
+    <div className="min-h-screen w-full bg-[#f5f6fa] pl-64 flex flex-col items-center">
       {/* Header */}
       <div className="fixed top-0 left-64 right-0 z-10 h-[60px] bg-white border-b border-gray-300 flex items-center gap-2 px-5">
         <Image src="/icons/menu.svg" alt="Menu" width={15} height={15} />
@@ -1118,23 +838,20 @@ export default function ApplicationPage() {
                 className="cursor-pointer bg-gray-200 text-gray-700 px-8 py-2 rounded-lg font-medium shadow hover:bg-gray-300 transition"
                 onClick={() => setStep(0)}
                 type="button"
-                disabled={submitting}
               >
                 Back
               </button>
               <button
-                className="cursor-pointer bg-[#2196f3] text-white px-8 py-2 rounded-lg font-medium shadow hover:bg-[#1976d2] transition disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick={handleSubmitApplication}
+                className="cursor-pointer bg-[#2196f3] text-white px-8 py-2 rounded-lg font-medium shadow hover:bg-[#1976d2] transition"
+                onClick={() => alert("Submitted!")}
                 type="button"
-                disabled={submitting}
               >
-                {submitting ? 'Submitting...' : 'Submit Application'}
+                Submit Application
               </button>
             </div>
           </div>
         )}
       </div>
     </div>
-    </>
   );
 }

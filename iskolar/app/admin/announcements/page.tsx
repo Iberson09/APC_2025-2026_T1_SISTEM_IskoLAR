@@ -38,6 +38,8 @@ export default function AnnouncementManagementPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   const fetchAnnouncements = async () => { setIsLoading(true); try { const response = await fetch('/api/announcements'); if (!response.ok) throw new Error('API Error'); const data = await response.json(); setAnnouncements(data); } catch (error) { console.error(error); setNotification({ message: 'Failed to fetch announcements.', type: 'error' }); } finally { setIsLoading(false); } };
   useEffect(() => { fetchAnnouncements(); }, []);
@@ -187,8 +189,8 @@ export default function AnnouncementManagementPage() {
   };
 
   return (
-    <div className="px-6 pb-6 max-w-[1600px] mx-auto space-y-6">
-      <div className="flex items-center justify-between pb-6">
+    <div className="px-6 pb-6 max-w-[1600px] mx-auto space-y-4">
+      <div className="flex items-center justify-between pb-4">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold text-gray-900">Announcement Management</h1>
           <p className="text-sm text-gray-500">Create, edit, and publish updates for users.</p>
@@ -213,7 +215,7 @@ export default function AnnouncementManagementPage() {
       
       <div className="bg-white rounded-xl shadow-md">
         <div className="px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
               <h2 className="text-lg font-semibold text-gray-900">Announcements</h2>
               <span className="px-2.5 py-0.5 text-sm bg-blue-100 text-blue-600 rounded-full">
@@ -243,7 +245,7 @@ export default function AnnouncementManagementPage() {
         {isLoading ? (
           <div className="px-6 py-4 text-center text-gray-500">Loading...</div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -262,7 +264,9 @@ export default function AnnouncementManagementPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredAnnouncements.map((ann) => (
+                {filteredAnnouncements
+                  .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                  .map((ann) => (
                   <tr key={ann.announcements_id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{ann.title}</div>
@@ -314,6 +318,90 @@ export default function AnnouncementManagementPage() {
                 <p className="mt-1 text-sm text-gray-500">Try adjusting your search or filters.</p>
               </div>
             )}
+          </div>
+        )}
+        
+        {/* Pagination Controls */}
+        {!isLoading && filteredAnnouncements.length > 0 && (
+          <div className="px-6 py-4 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center text-sm text-gray-500">
+                <span>
+                  Showing {Math.min((currentPage - 1) * itemsPerPage + 1, filteredAnnouncements.length)} to{' '}
+                  {Math.min(currentPage * itemsPerPage, filteredAnnouncements.length)} of{' '}
+                  {filteredAnnouncements.length} results
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className={`inline-flex items-center px-2 py-1 text-sm rounded border cursor-pointer
+                    ${currentPage === 1 
+                      ? 'text-gray-300 border-gray-200 bg-gray-50 cursor-not-allowed' 
+                      : 'text-gray-500 border-gray-300 hover:bg-gray-50'
+                    }`}
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+
+                {currentPage > 2 && (
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    className="inline-flex items-center px-3 py-1 text-sm text-gray-500 hover:bg-gray-50 border border-gray-300 rounded cursor-pointer"
+                  >
+                    1
+                  </button>
+                )}
+                
+                {currentPage > 3 && <span className="text-gray-500">...</span>}
+                
+                {Array.from({ length: Math.ceil(filteredAnnouncements.length / itemsPerPage) }, (_, i) => i + 1)
+                  .filter(page => Math.abs(page - currentPage) <= 1)
+                  .map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`inline-flex items-center px-3 py-1 text-sm rounded border cursor-pointer
+                        ${currentPage === page
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'text-gray-500 border-gray-300 hover:bg-gray-50'
+                        }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                
+                {currentPage < Math.ceil(filteredAnnouncements.length / itemsPerPage) - 2 && 
+                  <span className="text-gray-500">...</span>
+                }
+                
+                {currentPage < Math.ceil(filteredAnnouncements.length / itemsPerPage) - 1 && (
+                  <button
+                    onClick={() => setCurrentPage(Math.ceil(filteredAnnouncements.length / itemsPerPage))}
+                    className="inline-flex items-center px-3 py-1 text-sm text-gray-500 hover:bg-gray-50 border border-gray-300 rounded cursor-pointer"
+                  >
+                    {Math.ceil(filteredAnnouncements.length / itemsPerPage)}
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredAnnouncements.length / itemsPerPage), p + 1))}
+                  disabled={currentPage >= Math.ceil(filteredAnnouncements.length / itemsPerPage)}
+                  className={`inline-flex items-center px-2 py-1 text-sm rounded border cursor-pointer
+                    ${currentPage >= Math.ceil(filteredAnnouncements.length / itemsPerPage)
+                      ? 'text-gray-300 border-gray-200 bg-gray-50 cursor-not-allowed'
+                      : 'text-gray-500 border-gray-300 hover:bg-gray-50'
+                    }`}
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

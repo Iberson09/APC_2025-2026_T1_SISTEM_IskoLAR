@@ -18,24 +18,27 @@ export const InputForm: React.FC<InputFormProps> = ({ onSendMessage, isLoading }
   };
 
   return (
-    <div className="p-4 border-t border-slate-300 bg-white">
-      <form onSubmit={handleSubmit} className="flex items-center gap-4">
+    <div className="p-5 border-t border-gray-200 bg-white shadow-lg">
+      <form onSubmit={handleSubmit} className="flex items-center gap-3">
         <input
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Ask ISKAi a question..."
-          className="flex-1 p-3 border border-slate-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Type your question here..."
+          className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm placeholder:text-gray-400 bg-gray-50 hover:bg-white"
           disabled={isLoading}
         />
         <button
           type="submit"
-          className="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 disabled:bg-slate-400 transition-colors duration-200"
-          disabled={isLoading}
+          className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-3.5 rounded-2xl hover:from-blue-700 hover:to-blue-800 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95"
+          disabled={isLoading || !inputValue.trim()}
         >
           <SendIcon />
         </button>
       </form>
+      <p className="text-xs text-gray-400 mt-3 text-center font-medium">
+        Ask me about applications, status, or scholarships
+      </p>
     </div>
   );
 };

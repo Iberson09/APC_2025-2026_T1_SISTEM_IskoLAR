@@ -40,8 +40,25 @@ export async function POST(request: NextRequest) {
     if (signInError) {
       console.log('Sign in failed:', signInError.message);
       
-      // Create the user directly with the provided password
-      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      // If sign in failed, it could be:
+      // 1. User doesn't exist in auth yet - create them
+      // 2. User exists but wrong password - return error
+      // 3. User exists but needs password update
+      
+      if (signInError.message === 'Invalid login credentials') {
+        // Check if auth user exists
+        const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+        const userExists = existingUsers?.users.some(u => u.email === email_address);
+        
+        if (userExists) {
+          // User exists but password is wrong
+          console.log('User exists but password is incorrect');
+          return NextResponse.json({ error: 'Invalid admin credentials' }, { status: 401 });
+        }
+      }
+      
+      // Try to create the user
+      const { error: createError } = await supabaseAdmin.auth.admin.createUser({
         email: email_address,
         password: password,
         email_confirm: true,
@@ -53,6 +70,52 @@ export async function POST(request: NextRequest) {
 
       if (createError) {
         console.error('Error creating auth user:', createError);
+        
+        // If user already exists, try updating their password instead
+        if (createError.message.includes('already been registered')) {
+          console.log('User already exists, attempting to update password...');
+          
+          // Get the user by email
+          const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+          const existingUser = existingUsers?.users.find(u => u.email === email_address);
+          
+          if (existingUser) {
+            // Update the user's password
+            const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+              existingUser.id,
+              { password: password }
+            );
+            
+            if (updateError) {
+              console.error('Error updating password:', updateError);
+              return NextResponse.json({ error: 'Failed to update password' }, { status: 500 });
+            }
+            
+            console.log('Password updated, attempting sign in...');
+            
+            // Try signing in with the updated password
+            const { data: finalSignInData, error: finalSignInError } = await supabaseAdmin.auth.signInWithPassword({
+              email: email_address,
+              password: password,
+            });
+
+            if (finalSignInError) {
+              console.error('Final sign in failed:', finalSignInError);
+              return NextResponse.json({ error: 'Unable to sign in after password update' }, { status: 401 });
+            }
+
+            console.log('Sign in successful after password update');
+            return NextResponse.json({ 
+              success: true,
+              session: finalSignInData.session,
+              admin: {
+                ...adminData,
+                role: adminData.role.name
+              }
+            });
+          }
+        }
+        
         return NextResponse.json({ error: 'Failed to create auth user: ' + createError.message }, { status: 500 });
       }
 
@@ -90,7 +153,7 @@ export async function POST(request: NextRequest) {
         role: adminData.role.name
       }
     });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

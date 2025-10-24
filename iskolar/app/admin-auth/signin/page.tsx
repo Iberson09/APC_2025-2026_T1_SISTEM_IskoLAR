@@ -10,6 +10,10 @@ export default function AdminSignInPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -41,19 +45,15 @@ export default function AdminSignInPage() {
 
       setSuccess('Sign in successful!');
       router.push('/admin/dashboard');
-    } catch (err) {
+    } catch {
       setError('Network error');
     } finally {
       setLoading(false);
     }
   }
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [remember, setRemember] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#e3f0ff] via-[#f5f7fa] to-[#e3f0ff] py-8">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-linear-to-b from-[#e3f0ff] via-[#f5f7fa] to-[#e3f0ff] py-8">
       {/* Card */}
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center">
         <h2 className="text-2xl font-bold mb-1 text-gray-900">Welcome Back</h2>
@@ -75,7 +75,7 @@ export default function AdminSignInPage() {
                 id="email"
                 type="email"
                 autoComplete="username"
-                placeholder="admin@iskolar.taguig.ph"
+                placeholder="admin@iskolar.com"
                 className="w-full pl-10 pr-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2196F3] focus:border-[#2196F3] bg-gray-50 text-gray-900 placeholder-gray-400"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
@@ -149,9 +149,10 @@ export default function AdminSignInPage() {
           {/* Sign In Button */}
           <button
             type="submit"
-            className="cursor-pointer w-full py-2 rounded-lg bg-gradient-to-r from-[#D32F2F] to-[#B71C1C] text-white font-semibold text-lg shadow hover:opacity-90 transition"
+            disabled={loading}
+            className="cursor-pointer w-full py-2 rounded-lg bg-linear-to-r from-[#D32F2F] to-[#B71C1C] text-white font-semibold text-lg shadow hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Sign In
+            {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 

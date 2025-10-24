@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeftIcon, DocumentIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import AIVerificationPanel from '@/app/components/admin/AIVerificationPanel';
 
 // --- TYPE DEFINITIONS ---
 type ApplicationDetail = {
@@ -66,7 +67,7 @@ export default function ApplicationReviewPage() {
   const semesterId = params.semesterID as string;
   const userId = params.userID as string;
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'documents'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'ai-verification'>('overview');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -316,6 +317,16 @@ export default function ApplicationReviewPage() {
             >
               Documents ({documents.length})
             </button>
+            <button
+              onClick={() => setActiveTab('ai-verification')}
+              className={`px-6 py-4 text-sm font-medium transition-colors ${
+                activeTab === 'ai-verification'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              AI Verification
+            </button>
           </div>
         </div>
 
@@ -562,6 +573,13 @@ export default function ApplicationReviewPage() {
                 </div>
               )}
             </div>
+          )}
+
+          {activeTab === 'ai-verification' && (
+            <AIVerificationPanel 
+              userId={userId}
+              onVerificationComplete={fetchApplicationData}
+            />
           )}
         </div>
       </div>

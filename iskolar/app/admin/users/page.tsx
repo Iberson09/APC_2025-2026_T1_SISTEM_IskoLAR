@@ -457,7 +457,7 @@ function UserFilterModal({ isOpen, onClose, onApply, onReset, initialFilters }: 
             <XMarkIcon className="h-6 w-6" />
           </button>
         </div>
-        <div className="p-6 flex-grow overflow-y-auto space-y-6">
+        <div className="p-6 grow overflow-y-auto space-y-6">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-3">Last Login Date Range</label>
             <div className="grid grid-cols-2 gap-4">

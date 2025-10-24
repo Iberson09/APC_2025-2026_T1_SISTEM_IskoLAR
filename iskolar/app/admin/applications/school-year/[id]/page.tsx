@@ -1,10 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { SchoolYear, Semester } from '@/lib/types/school-year';
 import AddSemesterModal from './AddSemesterModal';
 import { useAuth } from '@/lib/useAuth';
+
+interface AdminUser {
+  email?: string;
+  [key: string]: unknown;
+}
 
 export default function SchoolYearDetailPage() {
   const params = useParams();
@@ -42,7 +47,7 @@ export default function SchoolYearDetailPage() {
     return semester;
   };
 
-  const fetchSchoolYear = async () => {
+  const fetchSchoolYear = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch(`/api/admin/school-years/${params.id}`, {
@@ -60,13 +65,13 @@ export default function SchoolYearDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [params.id]);
 
   useEffect(() => {
     if (params.id) {
       fetchSchoolYear();
     }
-  }, [params.id]);
+  }, [params.id, fetchSchoolYear]);
 
   const handleToggleApplications = async (semesterId: string, currentStatus: boolean) => {
     try {
@@ -101,7 +106,8 @@ export default function SchoolYearDetailPage() {
       return;
     }
 
-    if (!user || !(user as any).email) {
+    const adminUser = user as AdminUser | null;
+    if (!adminUser || !adminUser.email) {
       alert('You must be logged in as an admin to delete semesters.');
       return;
     }
@@ -121,7 +127,7 @@ export default function SchoolYearDetailPage() {
         },
         body: JSON.stringify({ 
           adminPassword: adminPassword.trim(),
-          adminEmail: (user as any).email
+          adminEmail: adminUser.email
         }),
       });
 
@@ -131,7 +137,7 @@ export default function SchoolYearDetailPage() {
         console.error('Delete response:', {
           status: response.status,
           error: data.error,
-          userEmail: (user as any).email
+          userEmail: adminUser.email
         });
 
         if (response.status === 403) {
@@ -256,7 +262,7 @@ export default function SchoolYearDetailPage() {
 
                     <div className="grid grid-cols-2 gap-3">
                       <button
-                        onClick={() => router.push('/admin/applications/all')}
+                        onClick={() => router.push(`/admin/applications/school-year/${schoolYear.id}/${semester.id}`)}
                         className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-all duration-200 cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                       >
                         <svg className="w-4 h-4 transform group-hover:scale-110 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">

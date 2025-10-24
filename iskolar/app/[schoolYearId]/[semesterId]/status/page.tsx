@@ -1,9 +1,10 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
+import ScholarSideBar from "@/app/components/ScholarSideBar";
 
 interface SchoolYear {
   id: string;
@@ -46,11 +47,7 @@ export default function StatusPage() {
     return name;
   };
 
-  useEffect(() => {
-    validateAndFetchData();
-  }, [schoolYearId, semesterId]);
-
-  const validateAndFetchData = async () => {
+  const validateAndFetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -119,65 +116,78 @@ export default function StatusPage() {
       setError('An unexpected error occurred');
       setLoading(false);
     }
-  };
+  }, [schoolYearId, semesterId]);
+
+  useEffect(() => {
+    validateAndFetchData();
+  }, [validateAndFetchData]);
 
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen w-full bg-[#f5f6fa] pl-64 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Loading status...</p>
+      <>
+        <ScholarSideBar />
+        <div className="min-h-screen w-full bg-[#f5f6fa] pl-64 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <p className="mt-4 text-gray-600">Loading status...</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen w-full bg-[#f5f6fa] pl-64 flex items-center justify-center">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-            <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+      <>
+        <ScholarSideBar />
+        <div className="min-h-screen w-full bg-[#f5f6fa] pl-64 flex items-center justify-center">
+          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+              <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Error</h3>
+            <p className="text-sm text-gray-500 mb-6">{error}</p>
+            <button
+              onClick={() => router.push('/scholar/announcements')}
+              className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500"
+            >
+              Go to Dashboard
+            </button>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Error</h3>
-          <p className="text-sm text-gray-500 mb-6">{error}</p>
-          <button
-            onClick={() => router.push('/scholar/announcements')}
-            className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500"
-          >
-            Go to Dashboard
-          </button>
         </div>
-      </div>
+      </>
     );
   }
 
   // No application found
   if (!application) {
     return (
-      <div className="min-h-screen w-full bg-[#f5f6fa] pl-64 flex items-center justify-center">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 mb-4">
-            <svg className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
+      <>
+        <ScholarSideBar />
+        <div className="min-h-screen w-full bg-[#f5f6fa] pl-64 flex items-center justify-center">
+          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 mb-4">
+              <svg className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Application Found</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              You haven&apos;t submitted an application for the {semester?.name ? formatSemesterName(semester.name) : 'current semester'} yet.
+            </p>
+            <Link
+              href={`/${schoolYearId}/${semesterId}/application`}
+              className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500"
+            >
+              Submit Application
+            </Link>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Application Found</h3>
-          <p className="text-sm text-gray-500 mb-6">
-            You haven't submitted an application for the {semester?.name ? formatSemesterName(semester.name) : 'current semester'} yet.
-          </p>
-          <Link
-            href={`/${schoolYearId}/${semesterId}/application`}
-            className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500"
-          >
-            Submit Application
-          </Link>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -224,24 +234,26 @@ export default function StatusPage() {
   const config = statusConfig[application.status];
 
   return (
-    <div className="min-h-screen w-full bg-[#f5f6fa] pl-64">
-      {/* Header */}
-      <div className="fixed top-0 left-64 right-0 z-10 h-[60px] bg-white border-b border-gray-300 flex items-center gap-2 px-5">
-        <span className="text-lg font-semibold">
-          Application Status
-        </span>
-        <span className="ml-4 px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full font-medium">
-          A.Y. {schoolYear?.academic_year} – {schoolYear ? schoolYear.academic_year + 1 : ''} • {semester?.name ? formatSemesterName(semester.name) : ''}
-        </span>
-      </div>
+    <>
+      <ScholarSideBar />
+      <div className="min-h-screen w-full bg-[#f5f6fa] pl-64">
+        {/* Header */}
+        <div className="fixed top-0 left-64 right-0 z-10 h-[60px] bg-white border-b border-gray-300 flex items-center gap-2 px-5">
+          <span className="text-lg font-semibold">
+            Application Status
+          </span>
+          <span className="ml-4 px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full font-medium">
+            A.Y. {schoolYear?.academic_year} – {schoolYear ? schoolYear.academic_year + 1 : ''} • {semester?.name ? formatSemesterName(semester.name) : ''}
+          </span>
+        </div>
 
-      {/* Content */}
-      <div className="pt-[80px] px-8 pb-12">
-        <div className="max-w-4xl mx-auto">
-          {/* Status Card */}
-          <div className="bg-white rounded-lg shadow-sm p-8 mb-6">
+        {/* Content */}
+        <div className="pt-20 px-8 pb-12">
+          <div className="max-w-4xl mx-auto">
+            {/* Status Card */}
+            <div className="bg-white rounded-lg shadow-sm p-8 mb-6">
             <div className="flex items-start gap-6">
-              <div className={`flex-shrink-0 h-16 w-16 rounded-full ${config.bg} ${config.text} flex items-center justify-center border-2 ${config.border}`}>
+              <div className={`shrink-0 h-16 w-16 rounded-full ${config.bg} ${config.text} flex items-center justify-center border-2 ${config.border}`}>
                 {config.icon}
               </div>
               <div className="flex-1">
@@ -311,5 +323,6 @@ export default function StatusPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

@@ -1,15 +1,31 @@
+'use client';
+
 import React, { useState } from 'react';
 import { SchoolYear } from '@/lib/types/school-year';
 
 interface SchoolYearSectionProps {
   schoolYears: SchoolYear[];
+  isLoading: boolean;
   onAddYear: () => void;
+  onUndoYear: (yearId: string) => void;
 }
 
-export default function SchoolYearSection({ schoolYears, onAddYear }: SchoolYearSectionProps) {
+export default function SchoolYearSection({ schoolYears, isLoading, onAddYear, onUndoYear }: SchoolYearSectionProps) {
   const [showPreviousYears, setShowPreviousYears] = useState(false);
   const currentYear = schoolYears.find(y => y.isCurrent);
   const previousYears = schoolYears.filter(y => !y.isCurrent);
+
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+          <div className="h-24 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
@@ -32,7 +48,6 @@ export default function SchoolYearSection({ schoolYears, onAddYear }: SchoolYear
       </div>
       
       <div className="px-6 py-4">
-        {/* Current Year */}
         {currentYear && (
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
@@ -55,21 +70,37 @@ export default function SchoolYearSection({ schoolYears, onAddYear }: SchoolYear
                     </span>
                   </div>
                 </div>
-                <button 
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 active:bg-blue-300 transition-all duration-200 group/btn cursor-pointer"
-                  onClick={() => window.location.href = `/admin/applications/school-year/${currentYear.id}`}
-                >
-                  Manage 
-                  <svg className="w-4 h-4 transform group-hover:translate-x-1 group-hover/btn:translate-x-0.5 transition-all duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
+                <div className="flex items-center gap-2">
+                  {currentYear.canUndo && (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onUndoYear(currentYear.id);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200"
+                      title="This action is only available for 24 hours after creation"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                      </svg>
+                      Undo Creation
+                    </button>
+                  )}
+                  <button 
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 active:bg-blue-300 transition-all duration-200 group/btn cursor-pointer"
+                    onClick={() => window.location.href = `/admin/applications/school-year/${currentYear.id}`}
+                  >
+                    Manage 
+                    <svg className="w-4 h-4 transform group-hover:translate-x-1 group-hover/btn:translate-x-0.5 transition-all duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Previous Years */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-medium text-gray-900">Previous Years</h3>
@@ -89,8 +120,7 @@ export default function SchoolYearSection({ schoolYears, onAddYear }: SchoolYear
               {previousYears.map((year) => (
                 <div 
                   key={year.id}
-                  className="group border border-gray-200 rounded-xl p-5 hover:bg-white hover:border-blue-200 hover:shadow-sm transition-all duration-200 cursor-pointer"
-                  onClick={() => window.location.href = `/admin/applications/school-year/${year.id}`}
+                  className="group border border-gray-200 rounded-xl p-5 hover:bg-white hover:border-blue-200 hover:shadow-sm transition-all duration-200"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -103,11 +133,34 @@ export default function SchoolYearSection({ schoolYears, onAddYear }: SchoolYear
                         A.Y. {year.academic_year} - {year.academic_year + 1}
                       </span>
                     </div>
-                    <div className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 group-hover:text-blue-600 transition-colors duration-200">
-                      View Details
-                      <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-all duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                    <div className="flex items-center gap-2">
+                      {year.canUndo && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onUndoYear(year.id);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200"
+                          title="This action is only available for 24 hours after creation"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                          </svg>
+                          Undo Creation
+                        </button>
+                      )}
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.location.href = `/admin/applications/school-year/${year.id}`;
+                        }}
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors duration-200"
+                      >
+                        View Details
+                        <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-all duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
                 </div>

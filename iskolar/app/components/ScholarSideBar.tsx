@@ -7,6 +7,21 @@ import { useState, useEffect } from 'react';
 import React from 'react';
 import { useAuth } from '@/lib/useAuth';
 import { supabase } from '@/lib/supabaseClient';
+import { ChatbotWidget } from './chatbot/ChatbotWidget';
+
+interface Semester {
+  id: string;
+  name: string;
+  applications_open: boolean;
+  start_date: string;
+  end_date: string;
+}
+
+interface SchoolYear {
+  id: string;
+  academic_year: number;
+  semesters: Semester[];
+}
 
 const ScholarSidebar = () => {
   const pathname = usePathname();
@@ -16,6 +31,8 @@ const ScholarSidebar = () => {
   const [, setIsSchoolYearOpen] = useState(false);
   const [isFirstSemOpen, setIsFirstSemOpen] = useState(false);
   const [isSecondSemOpen, setIsSecondSemOpen] = useState(false);
+  const [activeSchoolYear, setActiveSchoolYear] = useState<SchoolYear | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const handleLogout = async () => {
     try {
@@ -81,10 +98,53 @@ const ScholarSidebar = () => {
     },
   ];
 
-  const semesterSubItems = [
-    { label: 'Application', href: '/academicyearID/semesterID/application' },
-    { label: 'Status', href: '/academicyearID/semesterID/status' },
-  ];
+  // Fetch active school year and semesters
+  useEffect(() => {
+    const fetchSchoolYearData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch active school year
+        const { data: schoolYearData, error: yearError } = await supabase
+          .from('school_years')
+          .select('id, academic_year')
+          .eq('is_active', true)
+          .single();
+
+        if (yearError || !schoolYearData) {
+          console.error('Error fetching active school year:', yearError);
+          setActiveSchoolYear(null);
+          setLoading(false);
+          return;
+        }
+
+        // Fetch semesters for the active school year
+        const { data: semestersData, error: semestersError } = await supabase
+          .from('semesters')
+          .select('id, name, applications_open, start_date, end_date')
+          .eq('school_year_id', schoolYearData.id)
+          .order('name');
+
+        if (semestersError) {
+          console.error('Error fetching semesters:', semestersError);
+          setLoading(false);
+          return;
+        }
+
+        setActiveSchoolYear({
+          id: schoolYearData.id,
+          academic_year: schoolYearData.academic_year,
+          semesters: semestersData || []
+        });
+        setLoading(false);
+      } catch (error) {
+        console.error('Error in fetchSchoolYearData:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchSchoolYearData();
+  }, []);
 
   // Keep dropdowns open if on a subpage
   // Add this before the return statement
@@ -118,41 +178,53 @@ const ScholarSidebar = () => {
 
   // Handle navigation states
   React.useEffect(() => {
+    // Check if we're on a dynamic semester route (UUID-based)
+    const isDynamicSemesterRoute = /^\/[0-9a-f-]{36}\/[0-9a-f-]{36}\/(application|status)/.test(pathname);
+    
     // Always open program and school year if on any semester page
     if (
-      pathname.startsWith('/academicyearID/semesterID/') ||
+      isDynamicSemesterRoute ||
       pathname.includes('/scholar/scholarship/1st-semester') ||
       pathname.includes('/scholar/scholarship/2nd-semester')
     ) {
       setIsProgramOpen(true);
       setIsSchoolYearOpen(true);
 
-      // Open the correct semester dropdown if on its subpage
-      if (
-        pathname.includes('/scholar/scholarship/1st-semester') ||
-        pathname === '/academicyearID/semesterID/application' ||
-        pathname === '/academicyearID/semesterID/status'
-      ) {
+      // Determine which semester dropdown to open based on pathname
+      if (isDynamicSemesterRoute && activeSchoolYear) {
+        // Extract semesterId from pathname
+        const pathParts = pathname.split('/');
+        const semesterId = pathParts[2];
+        
+        // Find which semester this is
+        const semester = activeSchoolYear.semesters.find(s => s.id === semesterId);
+        if (semester) {
+          if (semester.name === 'FIRST') {
+            setIsFirstSemOpen(true);
+            setIsSecondSemOpen(false);
+          } else if (semester.name === 'SECOND') {
+            setIsSecondSemOpen(true);
+            setIsFirstSemOpen(false);
+          }
+        }
+      } else if (pathname.includes('/scholar/scholarship/1st-semester')) {
         setIsFirstSemOpen(true);
-      } else {
-        setIsFirstSemOpen(false);
-      }
-
-      if (pathname.includes('/scholar/scholarship/2nd-semester')) {
-        setIsSecondSemOpen(true);
-      } else {
         setIsSecondSemOpen(false);
+      } else if (pathname.includes('/scholar/scholarship/2nd-semester')) {
+        setIsSecondSemOpen(true);
+        setIsFirstSemOpen(false);
       }
     } else {
       // Optionally close all if not in any semester page
       setIsFirstSemOpen(false);
       setIsSecondSemOpen(false);
     }
-  }, [pathname]);
+  }, [pathname, activeSchoolYear]);
 
   return (
-    <aside className="fixed top-0 left-0 z-50 h-screen w-64 font-geist flex flex-col border-r bg-white border-gray-300 text-sm shadow-[4px_0_6px_-2px_rgba(0,0,0,0.1)]">
-      {/* Logo Header */}
+    <>
+      <aside className="fixed top-0 left-0 z-50 h-screen w-64 font-geist flex flex-col border-r bg-white border-gray-300 text-sm shadow-[4px_0_6px_-2px_rgba(0,0,0,0.1)]">
+        {/* Logo Header */}
       <div className="p-4 pl-7 border-b flex items-center gap-2 border-gray-300">
         <Image
           src="/IskoLAR.png"
@@ -167,9 +239,6 @@ const ScholarSidebar = () => {
       {/* Navigation */}
       <nav className="flex-1 px-3 pt-4 space-y-1">
         {/* Main Section */}
-        <div className="py-2 px-3">
-          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Main</span>
-        </div>
 
         {mainNavItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href);
@@ -245,93 +314,99 @@ const ScholarSidebar = () => {
         {isProgramOpen && (
           <div className="ml-4 space-y-1">
             {/* School Year */}
-            <div className="pl-4 py-2">
-              <span className="text-sm font-medium text-gray-700">A.Y. 2025 – 2026</span>
-            </div>
-
-            {/* Semesters */}
-            <div className="space-y-1">
-              {/* 1st Semester */}
-              <div className="pl-8">
-                <div
-                  onClick={() => setIsFirstSemOpen(!isFirstSemOpen)}
-                  className="flex items-center text-sm text-gray-700 hover:text-gray-900 cursor-pointer py-2"
-                >
-                  <span>1st Semester</span>
-                  <svg 
-                    className={`ml-2 w-4 h-4 text-gray-400 transition-transform duration-200 ${isFirstSemOpen ? 'rotate-180' : ''}`}
-                    fill="none" 
-                    viewBox="0 0 24 24" 
-                    stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-                
-                {isFirstSemOpen && (
-                  <div className="ml-4 space-y-1">
-                    {semesterSubItems.map((item) => {
-                      const isActive = pathname === item.href;
-                      return (
-                        <Link href={item.href} key={item.href}>
-                          <div className={`py-2 px-2 text-sm rounded-lg ${
-                            isActive
-                              ? 'text-blue-600 bg-blue-50'
-                              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                          }`}>
-                            {item.label}
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
+            {loading ? (
+              <div className="pl-4 py-2">
+                <span className="text-sm text-gray-500">Loading...</span>
               </div>
-
-              {/* 2nd Semester */}
-              <div className="pl-8">
-                <div
-                  onClick={() => setIsSecondSemOpen(!isSecondSemOpen)}
-                  className="flex items-center text-sm text-gray-700 hover:text-gray-900 cursor-pointer py-2"
-                >
-                  <span>2nd Semester</span>
-                  <svg 
-                    className={`ml-2 w-4 h-4 text-gray-400 transition-transform duration-200 ${isSecondSemOpen ? 'rotate-180' : ''}`}
-                    fill="none" 
-                    viewBox="0 0 24 24" 
-                    stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-                
-                {isSecondSemOpen && (
-                  <div className="ml-4 space-y-1">
-                    {semesterSubItems.map((item) => {
-                      const isActive = pathname === item.href;
-                      return (
-                        <Link href={item.href} key={item.href}>
-                          <div className={`py-2 px-2 text-sm rounded-lg ${
-                            isActive
-                              ? 'text-blue-600 bg-blue-50'
-                              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                          }`}>
-                            {item.label}
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
+            ) : !activeSchoolYear ? (
+              <div className="pl-4 py-2">
+                <span className="text-sm text-gray-500">No active academic year</span>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="pl-4 py-2">
+                  <span className="text-sm font-medium text-gray-700">
+                    A.Y. {activeSchoolYear.academic_year} – {activeSchoolYear.academic_year + 1}
+                  </span>
+                </div>
+
+                {/* Semesters */}
+                <div className="space-y-1">
+                  {activeSchoolYear.semesters.map((semester) => {
+                    // Determine which state to use based on semester name
+                    let isOpen = false;
+                    let setIsOpen: (value: boolean) => void = () => {};
+                    
+                    if (semester.name === 'FIRST') {
+                      isOpen = isFirstSemOpen;
+                      setIsOpen = setIsFirstSemOpen;
+                    } else if (semester.name === 'SECOND') {
+                      isOpen = isSecondSemOpen;
+                      setIsOpen = setIsSecondSemOpen;
+                    }
+                    
+                    const semesterLabel = semester.name === 'FIRST' ? 'First Semester' : 'Second Semester';
+                    
+                    // Check if semester is currently open
+                    // Admin controls this via applications_open flag
+                    const isCurrentlyOpen = semester.applications_open;
+
+                    return (
+                      <div className="pl-8" key={semester.id}>
+                        <div
+                          onClick={() => setIsOpen(!isOpen)}
+                          className="flex items-center text-sm py-2 text-gray-700 hover:text-gray-900 cursor-pointer"
+                        >
+                          <span>{semesterLabel}</span>
+                          {isCurrentlyOpen ? (
+                            <span className="ml-2 px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded-full">
+                              Open
+                            </span>
+                          ) : (
+                            <span className="ml-2 px-2 py-0.5 text-xs bg-gray-100 text-gray-500 rounded-full">
+                              Closed
+                            </span>
+                          )}
+                          <svg 
+                            className={`ml-2 w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                        
+                        {isOpen && (
+                          <div className="ml-4 space-y-1">
+                            <Link href={`/${activeSchoolYear.id}/${semester.id}/application`}>
+                              <div className={`py-2 px-2 text-sm rounded-lg ${
+                                pathname === `/${activeSchoolYear.id}/${semester.id}/application`
+                                  ? 'text-blue-600 bg-blue-50'
+                                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                              }`}>
+                                Application
+                              </div>
+                            </Link>
+                            <Link href={`/${activeSchoolYear.id}/${semester.id}/status`}>
+                              <div className={`py-2 px-2 text-sm rounded-lg ${
+                                pathname === `/${activeSchoolYear.id}/${semester.id}/status`
+                                  ? 'text-blue-600 bg-blue-50'
+                                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                              }`}>
+                                Status
+                              </div>
+                            </Link>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         )}
-
-        {/* Extras Section */}
-        <div className="py-2 px-3 mt-6">
-          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Extras</span>
-        </div>
 
         {extraItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href);
@@ -386,7 +461,11 @@ const ScholarSidebar = () => {
           </button>
         </div>
       </div>
-    </aside>
+      </aside>
+      
+      {/* ISKAi Chatbot Widget */}
+      <ChatbotWidget />
+    </>
   );
 };
 

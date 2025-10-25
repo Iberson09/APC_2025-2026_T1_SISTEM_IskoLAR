@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeftIcon, DocumentIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import AIVerificationPanel from '@/app/components/admin/AIVerificationPanel';
+import AIVerificationSummary from '@/app/components/admin/AIVerificationSummary';
 
 // --- TYPE DEFINITIONS ---
 type ApplicationDetail = {
@@ -334,6 +335,9 @@ export default function ApplicationReviewPage() {
         <div className="p-6">
           {activeTab === 'overview' && (
             <div className="space-y-6">
+              {/* AI Verification Summary */}
+              <AIVerificationSummary userId={userId} />
+
               {/* Personal Information */}
               <section>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>

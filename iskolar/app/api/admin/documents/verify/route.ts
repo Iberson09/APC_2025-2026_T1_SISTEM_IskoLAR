@@ -34,34 +34,77 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('Document found:', {
+      id: document.documents_id,
+      type: document.document_type,
+      userId: document.user_id,
+    });
+
     // Check if already verified
     if (document.ai_verified) {
+      console.log('Document already verified, returning cached results');
       return NextResponse.json({
         message: 'Document already verified',
         verification: {
-          summary: document.ai_summary,
-          discrepancies: document.ai_discrepancies,
-          confidenceLevel: document.confidence_level,
-          extractedData: document.extracted_data,
-          verificationDate: document.verification_date,
+          ai_verified: true,
+          ai_summary: document.ai_summary,
+          ai_discrepancies: document.ai_discrepancies,
+          confidence_level: document.confidence_level,
+          verification_date: document.verification_date,
+          extracted_data: document.extracted_data,
         },
       });
     }
 
-    // Fetch user data
-    const { data: user, error: userError } = await supabase
+    // Fetch user data - use document.user_id to get the correct user
+    console.log('Fetching user data for user_id:', document.user_id);
+    let user = null;
+    const { data: userData, error: userError } = await supabase
       .from('users')
       .select('*')
       .eq('user_id', document.user_id)
       .single();
 
+    user = userData;
+
+    // If user not found by document.user_id, try finding by application_details
     if (userError || !user) {
-      console.error('User not found:', userError);
+      console.warn('User not found by document.user_id, trying application_details...');
+      
+      const { data: appDetails } = await supabase
+        .from('application_details')
+        .select('user_id')
+        .eq('user_id', document.user_id)
+        .single();
+
+      if (appDetails) {
+        // Try fetching user again with the user_id from application
+        const { data: userFromApp, error: userFromAppError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('user_id', appDetails.user_id)
+          .single();
+        
+        if (!userFromAppError && userFromApp) {
+          user = userFromApp;
+          console.log('Found user via application_details');
+        }
+      }
+    }
+
+    // If still no user found, return error
+    if (!user) {
+      console.error('User not found for user_id:', document.user_id, 'Error:', userError);
       return NextResponse.json(
-        { error: 'User data not found' },
+        { error: `User data not found. Document user_id: ${document.user_id}. Please check if this document belongs to the correct user.` },
         { status: 404 }
       );
     }
+
+    console.log('User found:', {
+      userId: user.user_id,
+      name: `${user.first_name} ${user.last_name}`,
+    });
 
     console.log('Document details:', {
       id: document.documents_id,
@@ -155,7 +198,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       message: 'Document verified successfully',
-      verification: verificationResult,
+      verification: {
+        ai_verified: true,
+        ai_summary: verificationResult.summary,
+        ai_discrepancies: verificationResult.discrepancies,
+        confidence_level: verificationResult.confidenceLevel,
+        verification_date: new Date().toISOString(),
+        extracted_data: verificationResult.extractedData,
+      },
     });
   } catch (error) {
     console.error('Error in document verification:', error);

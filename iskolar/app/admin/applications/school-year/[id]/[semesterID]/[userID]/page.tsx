@@ -68,7 +68,7 @@ export default function ApplicationReviewPage() {
   const semesterId = params.semesterID as string;
   const userId = params.userID as string;
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'ai-verification'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'transaction-history' | 'personal-info' | 'educational-background' | 'guardian-info' | 'documents' | 'ai-verification'>('overview');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -297,10 +297,10 @@ export default function ApplicationReviewPage() {
       {/* Tabs */}
       <div className="bg-white rounded-xl shadow-md overflow-hidden">
         <div className="border-b border-gray-200">
-          <div className="flex">
+          <div className="flex overflow-x-auto">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`px-6 py-4 text-sm font-medium transition-colors ${
+              className={`px-6 py-4 text-sm font-medium transition-colors whitespace-nowrap ${
                 activeTab === 'overview'
                   ? 'text-blue-600 border-b-2 border-blue-600'
                   : 'text-gray-500 hover:text-gray-700'
@@ -309,8 +309,48 @@ export default function ApplicationReviewPage() {
               Overview
             </button>
             <button
+              onClick={() => setActiveTab('transaction-history')}
+              className={`px-6 py-4 text-sm font-medium transition-colors whitespace-nowrap ${
+                activeTab === 'transaction-history'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Transaction History
+            </button>
+            <button
+              onClick={() => setActiveTab('personal-info')}
+              className={`px-6 py-4 text-sm font-medium transition-colors whitespace-nowrap ${
+                activeTab === 'personal-info'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Personal Information
+            </button>
+            <button
+              onClick={() => setActiveTab('educational-background')}
+              className={`px-6 py-4 text-sm font-medium transition-colors whitespace-nowrap ${
+                activeTab === 'educational-background'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Educational Background
+            </button>
+            <button
+              onClick={() => setActiveTab('guardian-info')}
+              className={`px-6 py-4 text-sm font-medium transition-colors whitespace-nowrap ${
+                activeTab === 'guardian-info'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Guardian Information
+            </button>
+            <button
               onClick={() => setActiveTab('documents')}
-              className={`px-6 py-4 text-sm font-medium transition-colors ${
+              className={`px-6 py-4 text-sm font-medium transition-colors whitespace-nowrap ${
                 activeTab === 'documents'
                   ? 'text-blue-600 border-b-2 border-blue-600'
                   : 'text-gray-500 hover:text-gray-700'
@@ -320,7 +360,7 @@ export default function ApplicationReviewPage() {
             </button>
             <button
               onClick={() => setActiveTab('ai-verification')}
-              className={`px-6 py-4 text-sm font-medium transition-colors ${
+              className={`px-6 py-4 text-sm font-medium transition-colors whitespace-nowrap ${
                 activeTab === 'ai-verification'
                   ? 'text-blue-600 border-b-2 border-blue-600'
                   : 'text-gray-500 hover:text-gray-700'
@@ -337,157 +377,6 @@ export default function ApplicationReviewPage() {
             <div className="space-y-6">
               {/* AI Verification Summary */}
               <AIVerificationSummary userId={userId} />
-
-              {/* Personal Information */}
-              <section>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
-                <div className="grid grid-cols-2 gap-6 bg-gray-50 p-6 rounded-lg">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Full Name</label>
-                    <p className="text-sm font-medium text-gray-900">
-                      {userInfo.first_name} {userInfo.middle_name} {userInfo.last_name}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Email Address</label>
-                    <p className="text-sm font-medium text-gray-900">{userInfo.email_address}</p>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Mobile Number</label>
-                    <p className="text-sm font-medium text-gray-900">{userInfo.mobile_number}</p>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Gender</label>
-                    <p className="text-sm font-medium text-gray-900">{userInfo.gender}</p>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Birthdate</label>
-                    <p className="text-sm font-medium text-gray-900">
-                      {new Date(userInfo.birthdate).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Barangay</label>
-                    <p className="text-sm font-medium text-gray-900">{userInfo.barangay}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-xs text-gray-500 mb-1">Complete Address</label>
-                    <p className="text-sm font-medium text-gray-900">
-                      {userInfo.address_line1}{userInfo.address_line2 ? `, ${userInfo.address_line2}` : ''}, {userInfo.barangay}, Makati City, {userInfo.zip_code}
-                    </p>
-                  </div>
-                </div>
-              </section>
-
-              {/* Educational Background */}
-              <section>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Educational Background</h3>
-                <div className="space-y-4">
-                  {/* Junior High School */}
-                  <div className="bg-gray-50 p-6 rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-3">Junior High School</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">School Name</label>
-                        <p className="text-sm font-medium text-gray-900">{applicationDetail.junior_high_school_name}</p>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">School Address</label>
-                        <p className="text-sm font-medium text-gray-900">{applicationDetail.junior_high_school_address}</p>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Year Started</label>
-                        <p className="text-sm font-medium text-gray-900">{applicationDetail.junior_high_year_started}</p>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Year Graduated</label>
-                        <p className="text-sm font-medium text-gray-900">{applicationDetail.junior_high_year_ended}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Senior High School */}
-                  <div className="bg-gray-50 p-6 rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-3">Senior High School</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">School Name</label>
-                        <p className="text-sm font-medium text-gray-900">{applicationDetail.senior_high_school_name}</p>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">School Address</label>
-                        <p className="text-sm font-medium text-gray-900">{applicationDetail.senior_high_school_address}</p>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Year Started</label>
-                        <p className="text-sm font-medium text-gray-900">{applicationDetail.senior_high_year_started}</p>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Year Graduated</label>
-                        <p className="text-sm font-medium text-gray-900">{applicationDetail.senior_high_year_ended}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* College */}
-                  <div className="bg-gray-50 p-6 rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-3">College / University</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">School Name</label>
-                        <p className="text-sm font-medium text-gray-900">{userInfo.college_university}</p>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">School Address</label>
-                        <p className="text-sm font-medium text-gray-900">{applicationDetail.college_address}</p>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Course</label>
-                        <p className="text-sm font-medium text-gray-900">{userInfo.college_course}</p>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Year Level</label>
-                        <p className="text-sm font-medium text-gray-900">{applicationDetail.year_level}</p>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Year Started</label>
-                        <p className="text-sm font-medium text-gray-900">{applicationDetail.college_year_started}</p>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Expected Graduation</label>
-                        <p className="text-sm font-medium text-gray-900">{applicationDetail.college_year_grad}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* Guardian Information */}
-              <section>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Guardian Information</h3>
-                <div className="grid grid-cols-2 gap-6 bg-gray-50 p-6 rounded-lg">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Mother&apos;s Maiden Name</label>
-                    <p className="text-sm font-medium text-gray-900">{applicationDetail.mother_maiden_name}</p>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Mother&apos;s Occupation</label>
-                    <p className="text-sm font-medium text-gray-900">{applicationDetail.mother_occupation || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Father&apos;s Full Name</label>
-                    <p className="text-sm font-medium text-gray-900">{applicationDetail.father_full_name}</p>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Father&apos;s Occupation</label>
-                    <p className="text-sm font-medium text-gray-900">{applicationDetail.father_occupation || 'N/A'}</p>
-                  </div>
-                </div>
-              </section>
 
               {/* Application Metadata */}
               <section>
@@ -533,7 +422,229 @@ export default function ApplicationReviewPage() {
                   </div>
                 </div>
               </section>
+
+              {/* Quick Summary */}
+              <section>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Applicant Summary</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <p className="text-xs text-blue-600 font-medium mb-1">Full Name</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {userInfo.first_name} {userInfo.middle_name} {userInfo.last_name}
+                    </p>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <p className="text-xs text-green-600 font-medium mb-1">Course</p>
+                    <p className="text-sm font-semibold text-gray-900">{userInfo.college_course}</p>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <p className="text-xs text-purple-600 font-medium mb-1">Year Level</p>
+                    <p className="text-sm font-semibold text-gray-900">Year {applicationDetail.year_level}</p>
+                  </div>
+                </div>
+              </section>
             </div>
+          )}
+
+          {activeTab === 'transaction-history' && (
+            <div className="space-y-6">
+              <section>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Scholarship History</h3>
+                <div className="space-y-4">
+                  {/* Static data for now */}
+                  <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                            APPROVED
+                          </span>
+                          <span className="text-sm font-medium text-gray-900">Academic Year 2024-2025 • 1st Semester</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-3">Application submitted on September 15, 2024</p>
+                        <div className="grid grid-cols-3 gap-4">
+                          <div>
+                            <p className="text-xs text-gray-500">Status</p>
+                            <p className="text-sm font-medium text-green-600">Active Recipient</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Scholarship Type</p>
+                            <p className="text-sm font-medium text-gray-900">Full Scholarship</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Duration</p>
+                            <p className="text-sm font-medium text-gray-900">6 months</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Placeholder for future records */}
+                  <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p className="mt-2 text-sm text-gray-500">No previous scholarship records</p>
+                    <p className="text-xs text-gray-400 mt-1">Historical data will appear here</p>
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {activeTab === 'personal-info' && (
+            <section>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
+              <div className="grid grid-cols-2 gap-6 bg-gray-50 p-6 rounded-lg">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Full Name</label>
+                  <p className="text-sm font-medium text-gray-900">
+                    {userInfo.first_name} {userInfo.middle_name} {userInfo.last_name}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Email Address</label>
+                  <p className="text-sm font-medium text-gray-900">{userInfo.email_address}</p>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Mobile Number</label>
+                  <p className="text-sm font-medium text-gray-900">{userInfo.mobile_number}</p>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Gender</label>
+                  <p className="text-sm font-medium text-gray-900">{userInfo.gender}</p>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Birthdate</label>
+                  <p className="text-sm font-medium text-gray-900">
+                    {new Date(userInfo.birthdate).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Barangay</label>
+                  <p className="text-sm font-medium text-gray-900">{userInfo.barangay}</p>
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs text-gray-500 mb-1">Complete Address</label>
+                  <p className="text-sm font-medium text-gray-900">
+                    {userInfo.address_line1}{userInfo.address_line2 ? `, ${userInfo.address_line2}` : ''}, {userInfo.barangay}, Makati City, {userInfo.zip_code}
+                  </p>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'educational-background' && (
+            <section>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Educational Background</h3>
+              <div className="space-y-4">
+                {/* Junior High School */}
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <h4 className="font-medium text-gray-900 mb-3">Junior High School</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">School Name</label>
+                      <p className="text-sm font-medium text-gray-900">{applicationDetail.junior_high_school_name}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">School Address</label>
+                      <p className="text-sm font-medium text-gray-900">{applicationDetail.junior_high_school_address}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Year Started</label>
+                      <p className="text-sm font-medium text-gray-900">{applicationDetail.junior_high_year_started}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Year Graduated</label>
+                      <p className="text-sm font-medium text-gray-900">{applicationDetail.junior_high_year_ended}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Senior High School */}
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <h4 className="font-medium text-gray-900 mb-3">Senior High School</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">School Name</label>
+                      <p className="text-sm font-medium text-gray-900">{applicationDetail.senior_high_school_name}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">School Address</label>
+                      <p className="text-sm font-medium text-gray-900">{applicationDetail.senior_high_school_address}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Year Started</label>
+                      <p className="text-sm font-medium text-gray-900">{applicationDetail.senior_high_year_started}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Year Graduated</label>
+                      <p className="text-sm font-medium text-gray-900">{applicationDetail.senior_high_year_ended}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* College */}
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <h4 className="font-medium text-gray-900 mb-3">College / University</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">School Name</label>
+                      <p className="text-sm font-medium text-gray-900">{userInfo.college_university}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">School Address</label>
+                      <p className="text-sm font-medium text-gray-900">{applicationDetail.college_address}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Course</label>
+                      <p className="text-sm font-medium text-gray-900">{userInfo.college_course}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Year Level</label>
+                      <p className="text-sm font-medium text-gray-900">{applicationDetail.year_level}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Year Started</label>
+                      <p className="text-sm font-medium text-gray-900">{applicationDetail.college_year_started}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Expected Graduation</label>
+                      <p className="text-sm font-medium text-gray-900">{applicationDetail.college_year_grad}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'guardian-info' && (
+            <section>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Guardian Information</h3>
+              <div className="grid grid-cols-2 gap-6 bg-gray-50 p-6 rounded-lg">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Mother&apos;s Maiden Name</label>
+                  <p className="text-sm font-medium text-gray-900">{applicationDetail.mother_maiden_name}</p>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Mother&apos;s Occupation</label>
+                  <p className="text-sm font-medium text-gray-900">{applicationDetail.mother_occupation || 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Father&apos;s Full Name</label>
+                  <p className="text-sm font-medium text-gray-900">{applicationDetail.father_full_name}</p>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Father&apos;s Occupation</label>
+                  <p className="text-sm font-medium text-gray-900">{applicationDetail.father_occupation || 'N/A'}</p>
+                </div>
+              </div>
+            </section>
           )}
 
           {activeTab === 'documents' && (

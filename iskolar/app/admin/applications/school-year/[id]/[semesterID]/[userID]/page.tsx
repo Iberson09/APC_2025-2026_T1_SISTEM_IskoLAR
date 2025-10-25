@@ -316,7 +316,7 @@ export default function ApplicationReviewPage() {
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              Transaction History
+              Applicant History
             </button>
             <button
               onClick={() => setActiveTab('personal-info')}

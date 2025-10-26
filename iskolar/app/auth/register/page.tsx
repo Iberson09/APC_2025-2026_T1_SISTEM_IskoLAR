@@ -254,6 +254,97 @@ export default function SignUpPage() {
     const [success, setSuccess] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     
+    // Real-time validation errors
+    const [emailError, setEmailError] = useState("");
+    const [passwordError, setPasswordError] = useState("");
+    const [confirmPasswordError, setConfirmPasswordError] = useState("");
+    const [mobileError, setMobileError] = useState("");
+    const [birthdayError, setBirthdayError] = useState("");
+
+    // Email validation
+    const validateEmail = (email: string) => {
+        if (!email) {
+            setEmailError("");
+            return;
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            setEmailError("Please enter a valid email address");
+        } else {
+            setEmailError("");
+        }
+    };
+
+    // Password validation
+    const validatePassword = (password: string) => {
+        if (!password) {
+            setPasswordError("");
+            return;
+        }
+        if (password.length < 8) {
+            setPasswordError("Password must be at least 8 characters long");
+        } else if (!/[A-Z]/.test(password)) {
+            setPasswordError("Password must contain at least one uppercase letter");
+        } else if (!/[a-z]/.test(password)) {
+            setPasswordError("Password must contain at least one lowercase letter");
+        } else if (!/[0-9]/.test(password)) {
+            setPasswordError("Password must contain at least one number");
+        } else {
+            setPasswordError("");
+        }
+    };
+
+    // Confirm password validation
+    const validateConfirmPassword = (confirmPwd: string) => {
+        if (!confirmPwd) {
+            setConfirmPasswordError("");
+            return;
+        }
+        if (confirmPwd !== password) {
+            setConfirmPasswordError("Passwords do not match");
+        } else {
+            setConfirmPasswordError("");
+        }
+    };
+
+    // Mobile number validation
+    const validateMobile = (mobile: string) => {
+        if (!mobile) {
+            setMobileError("");
+            return;
+        }
+        const mobileRegex = /^09\d{9}$/;
+        if (!mobileRegex.test(mobile)) {
+            setMobileError("Mobile number must be in format 09XXXXXXXXX (11 digits)");
+        } else {
+            setMobileError("");
+        }
+    };
+
+    // Birthday validation
+    const validateBirthday = (birthday: string) => {
+        if (!birthday) {
+            setBirthdayError("");
+            return;
+        }
+        const birthDate = new Date(birthday);
+        const today = new Date();
+        const age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            // Subtract a year if birthday hasn't occurred this year yet
+            if (age - 1 < 16) {
+                setBirthdayError("You must be at least 16 years old to register");
+            } else {
+                setBirthdayError("");
+            }
+        } else if (age < 16) {
+            setBirthdayError("You must be at least 16 years old to register");
+        } else {
+            setBirthdayError("");
+        }
+    };
 
 
     // Validation function for ZIP code
@@ -433,10 +524,17 @@ export default function SignUpPage() {
                             <input
                                 id="birthday"
                                 type="date"
-                                className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2196F3] focus:border-[#2196F3] bg-gray-50 text-gray-900 placeholder-gray-400"
+                                className={`w-full px-3 py-2 rounded-lg border ${birthdayError ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#2196F3]'} focus:outline-none focus:ring-2 focus:border-[#2196F3] bg-gray-50 text-gray-900 placeholder-gray-400`}
                                 value={birthday}
-                                onChange={e => setBirthday(e.target.value)}
+                                onChange={e => {
+                                    setBirthday(e.target.value);
+                                    validateBirthday(e.target.value);
+                                }}
+                                onBlur={e => validateBirthday(e.target.value)}
                             />
+                            {birthdayError && (
+                                <p className="mt-1 text-xs text-red-600">{birthdayError}</p>
+                            )}
                         </div>
                         {/* Gender */}
                         <div className="relative">
@@ -470,10 +568,17 @@ export default function SignUpPage() {
                             id="mobile"
                             type="tel"
                             placeholder="09XXXXXXXXX"
-                            className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2196F3] focus:border-[#2196F3] bg-gray-50 text-gray-900 placeholder-gray-400"
+                            className={`w-full px-3 py-2 rounded-lg border ${mobileError ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#2196F3]'} focus:outline-none focus:ring-2 focus:border-[#2196F3] bg-gray-50 text-gray-900 placeholder-gray-400`}
                             value={mobile}
-                            onChange={e => setMobile(e.target.value)}
+                            onChange={e => {
+                                setMobile(e.target.value);
+                                validateMobile(e.target.value);
+                            }}
+                            onBlur={e => validateMobile(e.target.value)}
                         />
+                        {mobileError && (
+                            <p className="mt-1 text-xs text-red-600">{mobileError}</p>
+                        )}
                     </div>
                     {/* Email */}
                     <div>
@@ -489,11 +594,18 @@ export default function SignUpPage() {
                                 type="email"
                                 autoComplete="email"
                                 placeholder="example@gmail.com"
-                                className="w-full pl-10 pr-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2196F3] focus:border-[#2196F3] bg-gray-50 text-gray-900 placeholder-gray-400"
+                                className={`w-full pl-10 pr-3 py-2 rounded-lg border ${emailError ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#2196F3]'} focus:outline-none focus:ring-2 focus:border-[#2196F3] bg-gray-50 text-gray-900 placeholder-gray-400`}
                                 value={email}
-                                onChange={e => setEmail(e.target.value)}
+                                onChange={e => {
+                                    setEmail(e.target.value);
+                                    validateEmail(e.target.value);
+                                }}
+                                onBlur={e => validateEmail(e.target.value)}
                             />
                         </div>
+                        {emailError && (
+                            <p className="mt-1 text-xs text-red-600">{emailError}</p>
+                        )}
                     </div>
                     
                     {/* Section Headers */}
@@ -696,9 +808,16 @@ export default function SignUpPage() {
                                 type={showPassword ? "text" : "password"}
                                 autoComplete="new-password"
                                 placeholder="••••••••"
-                                className="w-full pr-10 px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2196F3] focus:border-[#2196F3] bg-gray-50 text-gray-900 placeholder-gray-400"
+                                className={`w-full pr-10 px-3 py-2 rounded-lg border ${passwordError ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#2196F3]'} focus:outline-none focus:ring-2 focus:border-[#2196F3] bg-gray-50 text-gray-900 placeholder-gray-400`}
                                 value={password}
-                                onChange={e => setPassword(e.target.value)}
+                                onChange={e => {
+                                    setPassword(e.target.value);
+                                    validatePassword(e.target.value);
+                                    if (confirmPassword) {
+                                        validateConfirmPassword(confirmPassword);
+                                    }
+                                }}
+                                onBlur={e => validatePassword(e.target.value)}
                             />
                             <button
                                 type="button"
@@ -721,6 +840,9 @@ export default function SignUpPage() {
                                 )}
                             </button>
                         </div>
+                        {passwordError && (
+                            <p className="mt-1 text-xs text-red-600">{passwordError}</p>
+                        )}
                     </div>
                     {/* Confirm Password */}
                     <div>
@@ -733,9 +855,13 @@ export default function SignUpPage() {
                                 type={showConfirmPassword ? "text" : "password"}
                                 autoComplete="new-password"
                                 placeholder="••••••••"
-                                className="w-full pr-10 px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2196F3] focus:border-[#2196F3] bg-gray-50 text-gray-900 placeholder-gray-400"
+                                className={`w-full pr-10 px-3 py-2 rounded-lg border ${confirmPasswordError ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#2196F3]'} focus:outline-none focus:ring-2 focus:border-[#2196F3] bg-gray-50 text-gray-900 placeholder-gray-400`}
                                 value={confirmPassword}
-                                onChange={e => setConfirmPassword(e.target.value)}
+                                onChange={e => {
+                                    setConfirmPassword(e.target.value);
+                                    validateConfirmPassword(e.target.value);
+                                }}
+                                onBlur={e => validateConfirmPassword(e.target.value)}
                             />
                             <button
                                 type="button"
@@ -758,6 +884,9 @@ export default function SignUpPage() {
                                 )}
                             </button>
                         </div>
+                        {confirmPasswordError && (
+                            <p className="mt-1 text-xs text-red-600">{confirmPasswordError}</p>
+                        )}
                     </div>
                     {/* Terms and Conditions Checkbox */}
                     <div className="flex items-start mb-2">

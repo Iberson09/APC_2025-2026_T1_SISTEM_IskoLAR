@@ -1,4 +1,4 @@
-﻿import sgMail from '@sendgrid/mail';
+﻿import sgMail, { ClientResponse } from '@sendgrid/mail';
 
 // Initialize SendGrid with API key
 if (!process.env.SENDGRID_API_KEY) {
@@ -15,11 +15,18 @@ export interface EmailOptions {
 
 export interface SendGridResponse {
   success: boolean;
-  response?: any;
+  response?: ClientResponse;
   error?: {
     message: string;
     code?: string;
-    details?: any;
+    details?: {
+      errors?: Array<{
+        message: string;
+        field?: string;
+        help?: string;
+      }>;
+      [key: string]: unknown;
+    };
   };
 }
 
@@ -48,20 +55,30 @@ export async function sendEmail({ to, subject, text, html }: EmailOptions): Prom
 
     const result = await sgMail.send(msg);
     return { success: true, response: result[0] };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { 
+      message: string; 
+      code?: string; 
+      response?: { 
+        body?: { 
+          errors?: Array<{ message: string }> 
+        } 
+      } 
+    };
+    
     console.error('SendGrid Error:', {
-      error: error.message,
-      response: error.response?.body,
-      code: error.code
+      error: err.message,
+      response: err.response?.body,
+      code: err.code
     });
     
-    const errorMessage = error.response?.body?.errors?.[0]?.message || error.message;
+    const errorMessage = err.response?.body?.errors?.[0]?.message || err.message;
     return { 
       success: false, 
       error: {
         message: errorMessage,
-        code: error.code,
-        details: error.response?.body
+        code: err.code,
+        details: err.response?.body
       }
     };
   }

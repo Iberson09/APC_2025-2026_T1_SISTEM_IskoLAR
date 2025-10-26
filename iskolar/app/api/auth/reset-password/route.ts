@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     };
 
     // First, let's check all users to debug
-    const { data: allUsers, error: listError } = await supabase
+    const { data: allUsers } = await supabase
       .from('users')
       .select('user_id, email_address, role_id');
     

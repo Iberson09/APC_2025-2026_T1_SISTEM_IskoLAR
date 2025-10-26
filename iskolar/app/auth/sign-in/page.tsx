@@ -48,8 +48,12 @@ export default function SignInPage() {
       } else {
         setError("No session returned");
       }
-    } catch (err: any) {
-      setError("Network error");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Network error");
+      }
     } finally {
       setLoading(false);
     }
@@ -156,9 +160,10 @@ export default function SignInPage() {
           {/* Sign In Button */}
           <button
             type="submit"
-            className="cursor-pointer w-full py-2 rounded-lg bg-gradient-to-r from-[#D32F2F] to-[#B71C1C] text-white font-semibold text-lg shadow hover:opacity-90 transition"
+            disabled={loading}
+            className="cursor-pointer w-full py-2 rounded-lg bg-gradient-to-r from-[#D32F2F] to-[#B71C1C] text-white font-semibold text-lg shadow hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Sign In
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
   <div className="mt-4 text-sm text-gray-500">

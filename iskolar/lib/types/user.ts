@@ -42,9 +42,21 @@ export interface UserBase {
 
   // Metadata
   last_login?: string;
-  profile_update_history?: any[];
+  profile_update_history?: ProfileUpdateEntry[];
   created_at?: string;
   updated_at?: string;
+}
+
+/**
+ * Profile update history entry
+ */
+export interface ProfileUpdateEntry {
+  timestamp: string;
+  changed_fields: Record<string, {
+    from: unknown;
+    to: unknown;
+  }>;
+  updated_by: string;
 }
 
 /**
@@ -119,6 +131,42 @@ export interface Document {
 }
 
 /**
+ * User Profile interface for API operations
+ */
+export interface UserProfile {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  gender: string;
+  birthdate: string;
+  email: string;
+  mobile: string;
+  
+  addressLine1?: string;
+  addressLine2?: string;
+  barangay?: string;
+  city?: string;
+  province?: string;
+  zipCode?: string;
+  region?: string;
+  
+  college?: string;
+  course?: string;
+  yearLevel?: string;
+  gpa?: string;
+  
+  psaDocumentUrl?: string;
+  voterDocumentUrl?: string;
+  nationalIdDocumentUrl?: string;
+  
+  scholarId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  status?: string;
+}
+
+/**
  * Registration interface for new users
  */
 export interface UserRegistration extends Omit<UserBase, "id" | "created_at" | "updated_at" | "last_login" | "profile_update_history"> {
@@ -176,13 +224,16 @@ export const userValidation = {
     return size <= MAX_FILE_SIZE;
   },
 
-  validateRequiredFields: (fields: Record<string, any>): string[] => {
-    const requiredFields = ["firstName", "lastName", "email", "gender", "birthdate"];
+  validateRequiredFields: (fields: UserProfile | UserRegistration | Record<string, string | number | boolean | null | undefined>): string[] => {
+    const requiredFields: Array<keyof UserBase> = ["first_name", "last_name", "email", "gender", "birthdate"];
     const missing: string[] = [];
     
     requiredFields.forEach(field => {
-      if (!fields[field] || fields[field].toString().trim() === "") {
-        missing.push(field);
+      const value = fields[field as keyof typeof fields];
+      if (!value || value.toString().trim() === "") {
+        // Convert database field names to UI field names
+        const uiField = field.replace(/_([a-z])/g, g => g[1].toUpperCase());
+        missing.push(uiField);
       }
     });
     

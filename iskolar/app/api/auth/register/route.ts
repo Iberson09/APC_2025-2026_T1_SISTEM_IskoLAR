@@ -85,19 +85,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare data for applications table
-    const applicationData = {
-      user_id: authData.user.id,
-      status: 'pending',
-      created_at: new Date().toISOString()
-    }
 
     // Prepare data for application_details table
-    const applicationDetailsData = {
-      user_id: authData.user.id,
-      college_name: college_name || null,
-      course: course || null,
-      created_at: new Date().toISOString()
-    }
     
     // Insert into users table
     const { data: insertData, error: insertError } = await supabaseAdmin
@@ -166,7 +155,7 @@ export async function POST(request: NextRequest) {
     console.log('Created application with ID:', applicationId)
 
     // Insert into application_details table with minimal required fields
-    const { data: detailsInsertData, error: applicationDetailsError } = await supabaseAdmin
+    const { error: applicationDetailsError } = await supabaseAdmin
       .from('application_details')
       .insert({
         application_id: applicationId,

@@ -1,11 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Semester, SemesterStats } from '@/lib/types/school-year';
+import { useState, useEffect, useCallback } from 'react';
+import { SchoolYear, Semester, SemesterStats } from '@/lib/types/school-year';
 import { supabase } from '@/lib/supabaseClient';
 
+interface Application {
+  id: string;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  users?: {
+    email?: string;
+    user_metadata?: {
+      full_name?: string;
+    };
+  };
+}
+
 interface ApplicationsSectionProps {
-  schoolYears: any[];
+  schoolYears: SchoolYear[];
   isLoading: boolean;
 }
 
@@ -277,15 +289,11 @@ export default function ApplicationsSection({ schoolYears, isLoading }: Applicat
 
 // Nested component for displaying applications list
 function ApplicationsList({ semesterId }: { semesterId: string }) {
-  const [applications, setApplications] = useState<any[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
 
-  useEffect(() => {
-    fetchApplications();
-  }, [semesterId, statusFilter]);
-
-  const fetchApplications = async () => {
+  const fetchApplicationsForList = useCallback(async () => {
     try {
       setLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
@@ -314,7 +322,13 @@ function ApplicationsList({ semesterId }: { semesterId: string }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [semesterId, statusFilter]);
+
+  useEffect(() => {
+    fetchApplicationsForList();
+  }, [fetchApplicationsForList]);
+
+
 
   if (loading) {
     return <div className="text-center py-4">Loading applications...</div>;

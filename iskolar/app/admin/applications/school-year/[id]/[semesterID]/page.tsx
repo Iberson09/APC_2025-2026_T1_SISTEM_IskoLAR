@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { XMarkIcon } from '@heroicons/react/24/solid';
-import { AdjustmentsHorizontalIcon, UserIcon } from '@heroicons/react/24/outline';
+import { AdjustmentsHorizontalIcon, UserIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 // --- TYPE DEFINITIONS ---
 type Application = {
@@ -127,9 +127,17 @@ export default function SemesterApplicationsPage() {
       )}
       
       <div className="flex items-center justify-between pb-2">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold text-gray-900">Semester Applications</h1>
-          <p className="text-sm text-gray-500">View and manage scholarship applications for this semester.</p>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.push('/admin/applications')}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ArrowLeftIcon className="h-5 w-5 text-gray-600" />
+          </button>
+          <div className="flex flex-col gap-1">
+            <h1 className="text-2xl font-semibold text-gray-900">Semester Applications</h1>
+            <p className="text-sm text-gray-500">View and manage scholarship applications for this semester.</p>
+          </div>
         </div>
         <div className="flex items-center gap-6">
           <div className="relative w-72">
@@ -219,7 +227,7 @@ export default function SemesterApplicationsPage() {
                         application.status === 'rejected' ? 'bg-red-100 text-red-800' :
                         'bg-yellow-100 text-yellow-800'
                       }`}>
-                        {application.status}
+                        {application.status.toUpperCase()}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">

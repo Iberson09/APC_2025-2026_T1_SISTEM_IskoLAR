@@ -79,9 +79,13 @@ export default function NewPasswordPage() {
       setTimeout(() => {
         router.push('/admin-auth/signin');
       }, 2000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error updating password:', err);
-      setError(err.message || 'Failed to update password');
+      if (typeof err === 'object' && err !== null && 'message' in err) {
+        setError((err as { message?: string }).message || 'Failed to update password');
+      } else {
+        setError('Failed to update password');
+      }
     } finally {
       setLoading(false);
     }

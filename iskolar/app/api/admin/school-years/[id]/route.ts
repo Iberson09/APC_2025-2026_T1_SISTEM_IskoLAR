@@ -6,14 +6,12 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-type Params = { id: string };
-
 export async function GET(
-  request: NextRequest, 
-  context: { params: Params }
+  _request: NextRequest, 
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = context.params.id;
+    const { id } = await context.params;
 
     const { data: schoolYear, error } = await supabaseAdmin
       .from('school_years')
@@ -69,10 +67,10 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Params }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await context.params;
     
     // Get the admin credentials
     const body = await request.json();

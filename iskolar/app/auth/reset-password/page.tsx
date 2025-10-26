@@ -31,8 +31,12 @@ export default function ResetPasswordPage() {
 
       // Use the same message format for consistency
       setSuccess(data.message || 'If an account exists with this email, a password reset link will be sent.');
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Something went wrong');
+      }
     } finally {
       setLoading(false);
     }

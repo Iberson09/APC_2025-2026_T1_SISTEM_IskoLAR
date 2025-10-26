@@ -8,15 +8,15 @@ const supabaseAdmin = createClient(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const semesterId = params.id;
+    const { id: semesterId } = await context.params;
     const body = await request.json();
     const { applications_open } = body;
 
     // First verify the semester exists
-    const { data: semesterData, error: checkError } = await supabaseAdmin
+    const { error: checkError } = await supabaseAdmin
       .from('semesters')
       .select('*')
       .eq('id', semesterId)
@@ -74,10 +74,10 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await context.params;
     console.log('Starting semester deletion for ID:', id);
 
     // Get the admin credentials

@@ -33,7 +33,15 @@ export interface Application {
   users?: {
     id: string;
     email: string;
-    user_metadata?: any;
+    user_metadata?: {
+      full_name?: string;
+      first_name?: string;
+      last_name?: string;
+      middle_name?: string;
+      gender?: string;
+      birthdate?: string;
+      contact_number?: string;
+    };
   };
 }
 

@@ -4,12 +4,12 @@ import { NextResponse } from 'next/server';
 
 export async function PUT(
   request: Request,
-  { params }: { params: { releaseid: string } }
+  context: { params: Promise<{ releaseid: string }> }
 ) {
   try {
     const supabase = createRouteHandlerClient({ cookies });
     const json = await request.json();
-    const releaseid = params.releaseid;
+    const { releaseid } = await context.params;
 
     const { error } = await supabase
       .from('releases')
@@ -39,11 +39,11 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { releaseid: string } }
+  context: { params: Promise<{ releaseid: string }> }
 ) {
   try {
     const supabase = createRouteHandlerClient({ cookies });
-    const releaseid = params.releaseid;
+    const { releaseid } = await context.params;
 
     const { error } = await supabase
       .from('releases')

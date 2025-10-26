@@ -17,6 +17,12 @@ type FormError = {
   message: string;
 } | null;
 
+type RoleObj = { name?: string };
+type AdminData = {
+  email_address?: string;
+  role?: RoleObj | RoleObj[] | null;
+};
+
 export default function UndoYearModal({ schoolYear, onClose, onUndo }: UndoYearModalProps) {
   const [adminPassword, setAdminPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,7 +59,12 @@ export default function UndoYearModal({ schoolYear, onClose, onUndo }: UndoYearM
         return;
       }
 
-      const roleName = Array.isArray(adminData.role) ? adminData.role[0]?.name : (adminData.role as any).name;
+      // role can be returned as an array when using the role:role!role_id join syntax
+      let roleName: string | undefined;
+      const role = (adminData as AdminData).role;
+      if (Array.isArray(role)) roleName = role[0]?.name;
+      else roleName = role?.name;
+
       if (roleName !== 'super_admin') {
         setError({ message: 'Unauthorized. Super admin access required.' });
         return;
@@ -84,9 +95,13 @@ export default function UndoYearModal({ schoolYear, onClose, onUndo }: UndoYearM
       // Brief delay to show success message
       await new Promise(resolve => setTimeout(resolve, 1000));
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error undoing school year:', error);
-      setError({ message: error.message || 'Failed to undo academic year. Please try again.' });
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        setError({ message: (error as { message?: string }).message || 'Failed to undo academic year. Please try again.' });
+      } else {
+        setError({ message: 'Failed to undo academic year. Please try again.' });
+      }
     } finally {
       setIsSubmitting(false);
     }

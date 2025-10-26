@@ -71,8 +71,12 @@ export default function ResetPasswordPage({ params }: Props) {
       setTimeout(() => {
         router.push('/auth/sign-in');
       }, 2000);
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Something went wrong');
+      }
     } finally {
       setLoading(false);
     }

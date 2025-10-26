@@ -798,7 +798,7 @@ export default function ApplicationPage() {
               </div>
               {/* Guardian's Voter Certification */}
               <div>
-                <label className="block text-xs text-gray-600 mb-1 font-medium">Guardian's Voter Certification</label>
+                <label className="block text-xs text-gray-600 mb-1 font-medium">Guardian&apos;s Voter Certification</label>
                 <div className="flex items-center gap-3 rounded-lg px-4 py-3 bg-[#F8F9FB] border-2 border-dashed border-[#90caf9]">
                   <input
                     type="file"

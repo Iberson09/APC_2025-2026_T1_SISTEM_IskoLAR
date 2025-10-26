@@ -1,10 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+
+type ApplicationRow = {
+  id: string;
+  status?: string | null;
+  created_at?: string | null;
+};
 
 export async function GET() {
   try {
@@ -24,7 +30,7 @@ export async function GET() {
     }
 
     // For now, just return the basic application data since there are no applications yet
-    const formattedApplications = (applications || []).map((app: any) => ({
+    const formattedApplications = (applications || []).map((app: ApplicationRow) => ({
       id: app.id,
       status: app.status || 'pending',
       date: app.created_at,

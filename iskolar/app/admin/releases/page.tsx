@@ -3,8 +3,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import {
   PlusIcon,
-  PencilIcon,
-  TrashIcon,
   CalendarIcon,
   AdjustmentsHorizontalIcon,
 } from '@heroicons/react/24/outline';

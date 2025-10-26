@@ -13,6 +13,12 @@ type FormError = {
   message: string;
 } | null;
 
+type RoleObj = { name?: string };
+type AdminData = {
+  email_address?: string;
+  role?: RoleObj | RoleObj[] | null;
+};
+
 export default function AddYearModal({ onClose, onAdd }: AddYearModalProps) {
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
@@ -67,7 +73,11 @@ export default function AddYearModal({ onClose, onAdd }: AddYearModalProps) {
       }
 
       // role can be returned as an array when using the role:role!role_id join syntax
-      const roleName = Array.isArray(adminData.role) ? adminData.role[0]?.name : (adminData.role as any).name;
+      let roleName: string | undefined;
+      const role = (adminData as AdminData).role;
+      if (Array.isArray(role)) roleName = role[0]?.name;
+      else roleName = role?.name;
+
       if (roleName !== 'super_admin') {
         setError({ message: 'Unauthorized. Super admin access required.' });
         setIsSubmitting(false);
@@ -95,7 +105,7 @@ export default function AddYearModal({ onClose, onAdd }: AddYearModalProps) {
         console.log('Response payload:', payload);
         
         if (!res.ok) {
-          let errorMessage = payload.error || 'Failed to create academic year';
+          const errorMessage = payload?.error || 'Failed to create academic year';
           console.error('Error response:', { status: res.status, error: errorMessage, details: payload });
           
           // Handle specific error cases
@@ -120,18 +130,27 @@ export default function AddYearModal({ onClose, onAdd }: AddYearModalProps) {
 
         await onAdd();
         onClose();
-      } catch (requestError: any) {
+      } catch (requestError: unknown) {
         console.error('Request error:', requestError);
-        if (requestError.name === 'AbortError') {
-          setError({ message: 'Request timed out after 30 seconds. Please try again.' });
+        if (typeof requestError === 'object' && requestError !== null && 'name' in requestError) {
+          const name = (requestError as { name?: string }).name;
+          if (name === 'AbortError') {
+            setError({ message: 'Request timed out after 30 seconds. Please try again.' });
+          } else {
+            setError({ message: 'Network error. Please check your connection and try again.' });
+          }
         } else {
           setError({ message: 'Network error. Please check your connection and try again.' });
         }
         setSubmitStatus('');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating school year:', error);
-      setError({ message: error.message || 'Failed to create academic year. Please try again.' });
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        setError({ message: (error as { message?: string }).message || 'Failed to create academic year. Please try again.' });
+      } else {
+        setError({ message: 'Failed to create academic year. Please try again.' });
+      }
     } finally {
       clearTimeout(timeoutId);
       setIsSubmitting(false);
@@ -154,7 +173,7 @@ export default function AddYearModal({ onClose, onAdd }: AddYearModalProps) {
 
           <div className="space-y-2">
             <p className="text-sm text-gray-700">
-              Clicking "Add Academic Year" will create the next academic year automatically (first will be A.Y. 2025-2026). This action can only be undone within 24 hours, and the newly created academic year will be set as active.
+              Clicking &quot;Add Academic Year&quot; will create the next academic year automatically (first will be A.Y. 2025-2026). This action can only be undone within 24 hours, and the newly created academic year will be set as active.
             </p>
 
             <div className="space-y-1">

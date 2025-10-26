@@ -84,7 +84,7 @@ export async function POST(request: Request) {
     }
 
     // Update admin's password in database without hashing
-    const { data: updateData, error: updateError } = await supabase
+    const { error: updateError } = await supabase
       .from('admin')
       .update({ 
         password: password // Store plain password for now
@@ -118,10 +118,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ 
       message: 'Password updated successfully'
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Password update error:', error);
+    if (typeof error === 'object' && error !== null && 'message' in error) {
+      return NextResponse.json(
+        { error: (error as { message?: string }).message || 'Failed to update password' },
+        { status: 500 }
+      );
+    }
     return NextResponse.json(
-      { error: error.message || 'Failed to update password' },
+      { error: 'Failed to update password' },
       { status: 500 }
     );
   }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/utils/email/sendEmail';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const result = await sendEmail({
       to: 'iberson0966@gmail.com',
@@ -11,12 +11,13 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json({ success: true, result });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Test email error:', error);
+    const err = error as { message?: string; response?: { body?: unknown } };
     return NextResponse.json({ 
       success: false, 
-      error: error.message,
-      details: error.response?.body 
+      error: err.message || 'Failed to send test email',
+      details: err.response?.body 
     }, { status: 500 });
   }
 }

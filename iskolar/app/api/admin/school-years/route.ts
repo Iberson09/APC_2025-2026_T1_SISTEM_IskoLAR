@@ -6,6 +6,18 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+type SchoolYearRow = {
+  id: string;
+  academic_year?: number | null;
+  is_active?: boolean | null;
+  semesters?: unknown[] | null;
+  [key: string]: unknown;
+};
+
+type LatestRow = { academic_year?: number | null } | null;
+
+type SupabaseUser = { email?: string };
+
 export async function GET() {
   try {
     const { data: schoolYears, error } = await supabaseAdmin
@@ -26,7 +38,7 @@ export async function GET() {
 
     // Get undo status for each year and determine current status
     const undoChecks = await Promise.all(
-      schoolYears?.map(async (year) => {
+      schoolYears?.map(async (year: SchoolYearRow) => {
         const { data: canUndo, error: undoError } = await supabaseAdmin.rpc(
           'can_undo_school_year',
           { p_school_year_id: year.id }
@@ -37,14 +49,14 @@ export async function GET() {
           return false;
         }
 
-        return canUndo;
+        return Boolean(canUndo);
       }) || []
     );
 
     // Combine the results
-    const schoolYearsWithCurrentAndUndo = schoolYears?.map((year, index) => ({
-      ...(year as any),
-      isCurrent: (year as any).is_active === true,  // Use is_active from database
+    const schoolYearsWithCurrentAndUndo = schoolYears?.map((year: SchoolYearRow, index: number) => ({
+      ...year,
+      isCurrent: year.is_active === true,  // Use is_active from database
       canUndo: undoChecks[index]
     })) || [];
 
@@ -88,13 +100,13 @@ export async function POST(request: Request) {
     }
 
     // Verify the user exists in auth metadata
-    const { data: { users }, error: adminUserError } = await supabaseAdmin.auth.admin.listUsers();
+  const { data: { users }, error: adminUserError } = await supabaseAdmin.auth.admin.listUsers();
     if (adminUserError) {
       console.error('Error listing users for verification:', adminUserError);
       return NextResponse.json({ error: 'Failed to verify user' }, { status: 500 });
     }
 
-    const adminUser = users?.find((u: any) => u.email === adminEmail);
+  const adminUser = users?.find((u: SupabaseUser) => u.email === adminEmail);
     if (!adminUser) {
       return NextResponse.json({ error: 'Admin user not found' }, { status: 404 });
     }
@@ -155,8 +167,9 @@ export async function POST(request: Request) {
     }
 
     const DEFAULT_START_YEAR = 2025;
-    const nextYear = latestRow && (latestRow as any).academic_year
-      ? (latestRow as any).academic_year + 1
+    const latest = latestRow as LatestRow;
+    const nextYear = latest && typeof latest.academic_year === 'number'
+      ? latest.academic_year + 1
       : DEFAULT_START_YEAR;
 
     console.log('Calling stored procedure to create school year...');

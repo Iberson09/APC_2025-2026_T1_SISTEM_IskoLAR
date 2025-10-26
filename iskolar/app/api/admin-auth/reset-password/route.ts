@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/utils/email/sendEmail';
 import { getPasswordResetEmailTemplate } from '@/lib/utils/email/templates';
@@ -97,10 +96,11 @@ export async function POST(request: Request) {
         html: template.html
       });
       console.log('Reset password email sent successfully');
-    } catch (emailError: any) {
+    } catch (emailError: unknown) {
       console.error('Failed to send reset password email:', emailError);
-      if (emailError.response) {
-        console.error('SendGrid API Response:', emailError.response.body);
+      if (typeof emailError === 'object' && emailError !== null && 'response' in emailError) {
+        const resp = (emailError as { response?: { body?: unknown } }).response;
+        console.error('SendGrid API Response:', resp?.body);
       }
       // Still return success message for security
       return NextResponse.json(response);

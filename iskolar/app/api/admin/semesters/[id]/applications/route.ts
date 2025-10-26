@@ -6,8 +6,6 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-type Params = { id: string };
-
 /**
  * GET /api/admin/semesters/[id]/applications
  * Returns all applications for a specific semester (admin only)
@@ -15,10 +13,10 @@ type Params = { id: string };
  */
 export async function GET(
   request: NextRequest,
-  context: { params: Params }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const semesterId = context.params.id;
+    const { id: semesterId } = await context.params;
     const { searchParams } = new URL(request.url);
     
     // Parse query parameters

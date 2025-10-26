@@ -1,7 +1,7 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { useState, useRef, useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/solid';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -35,38 +35,13 @@ const formatDate = (d?: string | null) => {
 };
 
 export default function AnnouncementsPage() {
-  const [open, setOpen] = useState(false);
-  const notifRef = useRef<HTMLDivElement>(null);
-  const [userName, setUserName] = useState('');
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: userData, error } = await supabase
-            .from('users')
-            .select('first_name, last_name')
-            .eq('email_address', user.email)
-            .single();
 
-          if (error) console.error('Error loading user data', error);
-          if (userData) {
-            setUserName(`${userData.first_name} ${userData.last_name}`);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch user data', err);
-      }
-    };
-
-    fetchUserData();
-  }, []);
 
   useEffect(() => {
     let isSubscribed = true;
@@ -104,9 +79,9 @@ export default function AnnouncementsPage() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'announcements' },
-        (payload) => {
+        (payload: { new: Announcement }) => {
           console.log('[Announcements realtime] INSERT', payload);
-          const newRow = (payload as any).new as Announcement;
+          const newRow = payload.new;
           // Prevent duplicate inserts if the row already exists in state
           setAnnouncements((prev) => [newRow, ...prev.filter((a) => String(a.announcements_id) !== String(newRow.announcements_id))]);
         }
@@ -114,18 +89,18 @@ export default function AnnouncementsPage() {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'announcements' },
-        (payload) => {
+        (payload: { new: Announcement }) => {
           console.log('[Announcements realtime] UPDATE', payload);
-          const updated = (payload as any).new as Announcement;
+          const updated = payload.new;
           setAnnouncements((prev) => prev.map((a) => (String(a.announcements_id) === String(updated.announcements_id) ? updated : a)));
         }
       )
       .on(
         'postgres_changes',
         { event: 'DELETE', schema: 'public', table: 'announcements' },
-        (payload) => {
+        (payload: { old: Announcement }) => {
           console.log('[Announcements realtime] DELETE', payload);
-          const oldRow = (payload as any).old as Announcement;
+          const oldRow = payload.old;
           setAnnouncements((prev) => prev.filter((a) => String(a.announcements_id) !== String(oldRow.announcements_id)));
         }
       )
@@ -135,7 +110,7 @@ export default function AnnouncementsPage() {
       isSubscribed = false;
       try {
         channel.unsubscribe();
-      } catch (e) {
+      } catch {
         // ignore
       }
     };
@@ -196,7 +171,7 @@ export default function AnnouncementsPage() {
                         >
                           <div className="relative h-48 sm:h-52 md:h-44 lg:h-48">
                             {a.file_path && isImageUrl(a.file_path) ? (
-                              <img src={a.file_path} alt={a.title ?? 'Announcement image'} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                              <Image src={a.file_path} alt={a.title ?? 'Announcement image'} fill className="object-cover transition-transform duration-300 group-hover:scale-105" />
                             ) : (
                               <div className="w-full h-full bg-gray-100 flex items-center justify-center">
                                 <div className="text-gray-400 text-lg">No image</div>
@@ -231,7 +206,7 @@ export default function AnnouncementsPage() {
                         >
                           <div className="flex-shrink-0 w-14 h-14 bg-gray-100 rounded-md overflow-hidden flex items-center justify-center">
                             {a.file_path && isImageUrl(a.file_path) ? (
-                              <img src={a.file_path} alt="" className="w-full h-full object-cover" />
+                              <Image src={a.file_path} alt="" fill className="object-cover" />
                             ) : (
                               <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4a2 2 0 012-2m14 0V7a2 2 0 00-2-2H7a2 2 0 00-2 2v4" />
@@ -276,7 +251,9 @@ function ViewAnnouncementModal({ isOpen, onClose, announcement }: { isOpen: bool
         {/* Header image with reduced opacity — shortened height for compact modal */}
         {fileUrl && isImageUrl(fileUrl) && (
           <div className="w-full flex-shrink-0 relative" style={{ maxHeight: 160, overflow: 'hidden' }}>
-            <img src={fileUrl} alt={announcement.title ?? 'Announcement image'} style={{ width: '100%', height: 140, objectFit: 'cover' }} className="block" />
+            <div className="relative" style={{ width: '100%', height: 140 }}>
+              <Image src={fileUrl} alt={announcement.title ?? 'Announcement image'} fill className="object-cover" />
+            </div>
             {/* 50% black overlay to fade image */}
             <div className="absolute inset-0 bg-black/50 pointer-events-none" />
             {/* centered title over header image */}

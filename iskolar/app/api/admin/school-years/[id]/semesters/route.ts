@@ -6,14 +6,12 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-type Params = { id: string };
-
 export async function POST(
   request: Request,
-  context: { params: Params }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = context.params.id;
+    const { id } = await context.params;
     console.log('Creating semester for school year:', id);
     
     const body = await request.json();

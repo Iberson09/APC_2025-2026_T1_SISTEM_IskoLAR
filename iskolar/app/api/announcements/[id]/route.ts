@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+type AnnouncementUpdate = {
+  updated_at: string;
+  title?: string;
+  content?: string;
+  publish_date?: string;
+  file_path?: string | null;
+};
+
+export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const id = String(params.id);
+    const { id } = await context.params;
     const formData = await request.formData();
 
     const title = formData.get('title');
@@ -19,7 +27,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('announcements')
         .upload(fileName, buffer, { contentType: file.type, cacheControl: '3600', upsert: false });
       if (uploadError) return NextResponse.json({ error: 'File upload failed', details: uploadError }, { status: 500 });
@@ -27,7 +35,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       file_path = urlData.publicUrl;
     }
 
-    const updatePayload: any = {
+    const updatePayload: AnnouncementUpdate = {
       updated_at: new Date().toISOString()
     };
     if (title) updatePayload.title = String(title).trim();
@@ -36,7 +44,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     if (file_path) updatePayload.file_path = file_path;
 
     console.log('PATCH /api/announcements/[id] - updating id:', id, 'payload:', updatePayload);
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('announcements')
       .update(updatePayload)
       .eq('announcements_id', id)
@@ -44,7 +52,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       .single();
 
     if (error) throw error;
-    return NextResponse.json(data);
+    return NextResponse.json({ success: true });
   } catch (err: unknown) {
     console.error('ERROR IN PATCH /api/announcements/[id]:', err);
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -52,11 +60,11 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const id = String(params.id);
+    const { id } = await context.params;
     console.log('DELETE /api/announcements/[id] - deleting id:', id);
-    const { data, error } = await supabase.from('announcements').delete().eq('announcements_id', id);
+    const { error } = await supabase.from('announcements').delete().eq('announcements_id', id);
     if (error) throw error;
     return NextResponse.json({ success: true });
   } catch (err: unknown) {

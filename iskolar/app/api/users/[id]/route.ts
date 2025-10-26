@@ -9,10 +9,10 @@ const supabaseAdmin = createClient(
 // Deactivate or reactivate a user
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await context.params;
 
     // Deactivate the user in auth service
     const { error } = await supabaseAdmin.auth.admin.updateUserById(
@@ -24,7 +24,7 @@ export async function PATCH(
     return NextResponse.json({ message: 'User deactivated successfully' });
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
-    console.error(`ERROR IN PATCH /api/users/${params.id}:`, err);
+    console.error(`ERROR IN PATCH /api/users/[id]:`, err);
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
@@ -32,10 +32,10 @@ export async function PATCH(
 // Permanently delete a user
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await context.params;
     
     // This command deletes the user from Supabase Authentication
     const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
@@ -52,7 +52,7 @@ export async function DELETE(
     return NextResponse.json({ message: 'User deleted successfully' });
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
-    console.error(`ERROR IN DELETE /api/users/${params.id}:`, err);
+    console.error(`ERROR IN DELETE /api/users/[id]:`, err);
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

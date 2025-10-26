@@ -29,16 +29,18 @@ export async function GET() {
       status: result[0]?.statusCode,
       messageId: result[0]?.headers['x-message-id']
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    // Type guard for error object with message and optional response
+    const err = error as { message?: string; response?: { body?: unknown } };
     console.error('Test email error:', {
-      message: error.message,
-      response: error.response?.body
+      message: err.message,
+      response: err.response?.body
     });
     
     return NextResponse.json({
       success: false,
-      error: error.message,
-      details: error.response?.body
+      error: err.message || 'Failed to send test email',
+      details: err.response?.body
     }, { status: 500 });
   }
 }

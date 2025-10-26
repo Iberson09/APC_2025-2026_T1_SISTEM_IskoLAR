@@ -1,6 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { UserProfile, userValidation } from '@/lib/types/user';
+import { userValidation } from '@/lib/types/user';
+
+interface UserProfile {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  gender: string;
+  birthdate: string;
+  email: string;
+  mobile: string;
+  
+  addressLine1?: string;
+  addressLine2?: string;
+  barangay?: string;
+  city?: string;
+  province?: string;
+  zipCode?: string;
+  region?: string;
+  
+  college?: string;
+  course?: string;
+  yearLevel?: string;
+  gpa?: string;
+  
+  psaDocumentUrl?: string;
+  voterDocumentUrl?: string;
+  nationalIdDocumentUrl?: string;
+  
+  scholarId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  status?: string;
+}
 
 // PUT /api/profile/update - Update user profile data
 export async function PUT(request: NextRequest) {
@@ -57,7 +90,7 @@ export async function PUT(request: NextRequest) {
 
     // Clean and validate mobile number
     if (userData.mobile) {
-      const mobileValidation = userValidation.validateMobile(userData.mobile);
+      const mobileValidation = userValidation.validateContactNumber(userData.mobile);
       if (!mobileValidation.isValid) {
         return NextResponse.json({ error: mobileValidation.error }, { status: 400 });
       }
@@ -86,7 +119,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Track changed fields for history
-    const changedFields: Record<string, { from: any; to: any }> = {};
+    const changedFields: Record<string, { from: unknown; to: unknown }> = {};
     const fieldMappings = {
       firstName: 'first_name',
       lastName: 'last_name', 
@@ -119,7 +152,33 @@ export async function PUT(request: NextRequest) {
     });
 
     // Format the data for database update
-    const userUpdateData: any = {
+    const userUpdateData: {
+      // Personal info
+      first_name: string;
+      last_name: string;
+      middle_name: string | null;
+      gender: string | null;
+      birthdate: string | null;
+      email_address: string;
+      mobile_number: string;
+      
+      // Address info
+      address_line1: string | null;
+      address_line2: string | null;
+      barangay: string | null;
+      city: string | null;
+      province: string | null;
+      zip_code: string | null;
+      region: string | null;
+      
+      // Education info
+      college: string | null;
+      course: string | null;
+      
+      // Timestamp & History
+      updated_at: string;
+      profile_update_history?: { timestamp: string; changed_fields: Record<string, unknown>; updated_by: string }[];
+    } = {
       // Personal info
       first_name: userData.firstName,
       last_name: userData.lastName,

@@ -1292,8 +1292,34 @@ export default function ProfilePage() {
               <Image src="/icons/documents.svg" alt="Documents" width={19} height={19} />
               <span className="font-semibold text-gray-700 text-lg">Documents</span>
             </div>
-            <hr className="border-gray-200 mb-2" />
-            <p className="text-xs text-gray-500 mb-4">Note: Maximum file size is 5MB. Supported file types: PDF, JPEG, PNG, DOC, DOCX.</p>
+            <hr className="border-gray-200 mb-4" />
+            
+            {/* Document Upload Guidelines */}
+            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start">
+                <svg
+                  className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <div>
+                  <p className="text-sm font-medium text-blue-900">
+                    Document Upload Guidelines
+                  </p>
+                  <p className="text-sm text-blue-700 mt-1">
+                    Max file size: <strong>10MB</strong>. Allowed formats:{" "}
+                    <strong>PDF, PNG, JPG, JPEG</strong>
+                  </p>
+                </div>
+              </div>
+            </div>
+            
             <div className="grid grid-cols-1 gap-5">
               {Object.entries(documents).map(([type, doc]) => {
                 const title = type === 'psa' ? 'PSA Birth Certificate' :

@@ -678,9 +678,6 @@ function AnnouncementModal({ isOpen, onClose, onSave, announcement }: { isOpen: 
               ) : (
                 'No file selected. You can attach documents, images, or other relevant files.'
               )}
-              <p className="mt-1">
-                Note: Maximum file size is 5MB. Supported file types: PDF, JPEG, PNG, DOC, DOCX.
-              </p>
             </div>
           </div>
         </div>

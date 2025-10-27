@@ -8,4 +8,5 @@ export interface Release {
   amountperstudent: number;
   numberofrecipients: number;
   additionalnotes: string | null;
+  isArchived: boolean;
 }

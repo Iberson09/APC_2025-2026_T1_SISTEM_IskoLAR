@@ -1,22 +1,26 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/useAuth';
 
 const AdminSidebar = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const { signOut } = useAuth();
 
   const handleSignOut = async () => {
     try {
+      console.log('Admin signing out...');
       await signOut();
-      // The auth state change will trigger a redirect in useAuth
+      console.log('Admin sign out successful, redirecting...');
+      // Redirect to admin sign in page after successful sign out
+      router.push('/admin-auth/signin');
     } catch (error) {
       console.error('Error during sign out:', error);
       // Manual fallback redirect if needed
-      window.location.href = '/admin-auth/signin';
+      router.push('/admin-auth/signin');
     }
   };
 

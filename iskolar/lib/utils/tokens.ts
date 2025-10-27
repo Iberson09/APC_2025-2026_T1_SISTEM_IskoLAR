@@ -15,7 +15,8 @@ const supabase = createClient(
 
 export interface TokenData {
   userId: number | string;  // user_id
-  userType: 'admin' | 'user' | 'finance' | 'reviewer';  // All possible user types
+  userType: 'admin' | 'user';  // admin or scholar
+  roleName?: 'admin' | 'super_admin';  // Specific role name for admins
 }
 
 export async function createResetToken(data: TokenData): Promise<string> {
@@ -124,7 +125,7 @@ export async function validateResetToken(token: string): Promise<TokenData | nul
     
     return {
       userId: id,
-      userType: apiUserType as 'admin' | 'user' | 'finance' | 'reviewer',
+      userType: apiUserType as 'admin' | 'user',
     };
   } catch (err) {
     console.error('Unexpected error validating token:', err);

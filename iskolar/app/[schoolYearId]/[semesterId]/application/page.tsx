@@ -719,12 +719,7 @@ export default function ApplicationPage() {
                         max="2030"
                         className={inputClassName} 
                         value={juniorHighYearStarted} 
-                        onChange={e => {
-                          const value = e.target.value;
-                          if (value === '' || (Number(value) >= 2000 && Number(value) <= 2030)) {
-                            setJuniorHighYearStarted(value);
-                          }
-                        }}
+                        onChange={e => setJuniorHighYearStarted(e.target.value)}
                         placeholder="YYYY"
                       />
                       {juniorHighYearStarted && (Number(juniorHighYearStarted) < 2000 || Number(juniorHighYearStarted) > 2030) && (
@@ -740,12 +735,7 @@ export default function ApplicationPage() {
                         max="2030"
                         className={inputClassName} 
                         value={juniorHighYearGraduated} 
-                        onChange={e => {
-                          const value = e.target.value;
-                          if (value === '' || (Number(value) >= 2000 && Number(value) <= 2030)) {
-                            setJuniorHighYearGraduated(value);
-                          }
-                        }}
+                        onChange={e => setJuniorHighYearGraduated(e.target.value)}
                         placeholder="YYYY"
                       />
                       {juniorHighYearGraduated && (Number(juniorHighYearGraduated) < 2000 || Number(juniorHighYearGraduated) > 2030) && (
@@ -771,12 +761,7 @@ export default function ApplicationPage() {
                         max="2030"
                         className={inputClassName} 
                         value={seniorHighYearStarted} 
-                        onChange={e => {
-                          const value = e.target.value;
-                          if (value === '' || (Number(value) >= 2000 && Number(value) <= 2030)) {
-                            setSeniorHighYearStarted(value);
-                          }
-                        }}
+                        onChange={e => setSeniorHighYearStarted(e.target.value)}
                         placeholder="YYYY"
                       />
                       {seniorHighYearStarted && (Number(seniorHighYearStarted) < 2000 || Number(seniorHighYearStarted) > 2030) && (
@@ -792,12 +777,7 @@ export default function ApplicationPage() {
                         max="2030"
                         className={inputClassName} 
                         value={seniorHighYearGraduated} 
-                        onChange={e => {
-                          const value = e.target.value;
-                          if (value === '' || (Number(value) >= 2000 && Number(value) <= 2030)) {
-                            setSeniorHighYearGraduated(value);
-                          }
-                        }}
+                        onChange={e => setSeniorHighYearGraduated(e.target.value)}
                         placeholder="YYYY"
                       />
                       {seniorHighYearGraduated && (Number(seniorHighYearGraduated) < 2000 || Number(seniorHighYearGraduated) > 2030) && (

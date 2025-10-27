@@ -11,6 +11,7 @@ import { roleDisplay, roleSubtitle, canManageAdmins, type AdminRoleName } from '
 
 const AdminSidebar = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const { signOut, user } = useAuth();
   const [title, setTitle] = useState('Administrator');
   const [subtitle, setSubtitle] = useState('Application Management');

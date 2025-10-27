@@ -181,6 +181,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [chartView, setChartView] = useState<'status' | 'barangay' | 'course' | 'school'>('status');
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [timeRange, setTimeRange] = useState<'7days' | '30days' | '90days' | 'all'>('30days');
 
   // Check if user is super admin
   useEffect(() => {

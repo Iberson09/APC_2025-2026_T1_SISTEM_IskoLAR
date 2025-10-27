@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { hasPermission } from '@/lib/auth/roles';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -96,26 +97,12 @@ export async function DELETE(
       );
     }
 
-    // Verify if the user is a super_admin in the admin table
-    const { data: adminData, error: adminError } = await supabaseAdmin
-      .from('admin')
-      .select('role_id')
-      .eq('email_address', adminEmail)
-      .single();
-
-    if (adminError || !adminData) {
-      console.error('Error fetching admin:', adminError);
+    // Check if user has admin permissions using role guard
+    const hasAdminPermission = await hasPermission(adminEmail, 'admin');
+    if (!hasAdminPermission) {
+      console.error('User not an administrator:', { email: adminEmail });
       return NextResponse.json(
-        { error: 'Failed to verify admin role' },
-        { status: 500 }
-      );
-    }
-
-    const SUPER_ADMIN_ROLE_ID = '4f53ccf0-9d4a-4345-8061-50a1e728494d';
-    if (adminData.role_id !== SUPER_ADMIN_ROLE_ID) {
-      console.error('User not super admin:', { email: adminEmail, roleId: adminData.role_id });
-      return NextResponse.json(
-        { error: 'Only super administrators can delete academic years' },
+        { error: 'Only administrators can delete academic years' },
         { status: 403 }
       );
     }

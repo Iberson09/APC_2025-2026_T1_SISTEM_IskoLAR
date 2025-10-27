@@ -864,9 +864,6 @@ export default function ApplicationPage() {
               <div className="text-xs text-gray-500">
                 Please upload clear and valid copies of your documents below.
               </div>
-              <div className="text-xs text-gray-500 mt-1">
-                Note: Maximum file size is 10MB. Supported file types: PDF, JPEG, PNG.
-              </div>
             </div>
             
             {/* Document Upload Guidelines */}
@@ -913,10 +910,10 @@ export default function ApplicationPage() {
                           e.target.value = '';
                           setBirthCertFileName('');
                         }
-                      }}
-                    />
-                    <span className="text-xs text-gray-500 truncate">{birthCertFileName}</span>
-                  </div>
+                      }
+                    }}
+                  />
+                  <span className="text-xs text-gray-500 truncate">{birthCertFileName}</span>
                 </div>
               </div>
               {/* Student's Voter's Certification */}
@@ -1027,11 +1024,10 @@ export default function ApplicationPage() {
                           e.target.value = '';
                           setRegFileName('');
                         }
-                      }}
-                    />
-                    <span className="text-xs text-gray-500 truncate">{regFileName}</span>
-                  </div>
-                  
+                      }
+                    }}
+                  />
+                  <span className="text-xs text-gray-500 truncate">{regFileName}</span>
                 </div>
               </div>
               {/* Certificate of Grades */}

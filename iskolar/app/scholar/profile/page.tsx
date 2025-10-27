@@ -1292,7 +1292,8 @@ export default function ProfilePage() {
               <Image src="/icons/documents.svg" alt="Documents" width={19} height={19} />
               <span className="font-semibold text-gray-700 text-lg">Documents</span>
             </div>
-            <hr className="border-gray-200 mb-4" />
+            <hr className="border-gray-200 mb-2" />
+            <p className="text-xs text-gray-500 mb-4">Note: Maximum file size is 5MB. Supported file types: PDF, JPEG, PNG, DOC, DOCX.</p>
             <div className="grid grid-cols-1 gap-5">
               {Object.entries(documents).map(([type, doc]) => {
                 const title = type === 'psa' ? 'PSA Birth Certificate' :

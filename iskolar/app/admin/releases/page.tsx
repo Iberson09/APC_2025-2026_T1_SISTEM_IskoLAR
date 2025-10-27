@@ -14,8 +14,8 @@ const ScheduleReleaseModal = dynamic(
   { ssr: false }
 );
 
-const CancelConfirmationModal = dynamic(
-  () => import('@/app/components/admin/releases/CancelConfirmationModal'),
+const DeleteReleaseModal = dynamic(
+  () => import('@/app/components/admin/releases/DeleteReleaseModal'),
   { ssr: false }
 );
 
@@ -27,10 +27,19 @@ const FilterModal = dynamic(
 export default function ReleasesPage() {
   const [releases, setReleases] = useState<Release[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // Budget state
+  const [budget, setBudget] = useState<number>(0);
+  const [budgetInput, setBudgetInput] = useState<string>("");
+  // Calculate total released amount
+  const totalReleased = useMemo(() => {
+    return releases.reduce((sum, r) => sum + (r.amountperstudent * r.numberofrecipients), 0);
+  }, [releases]);
+
+  const remainingBudget = budget - totalReleased;
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [editingRelease, setEditingRelease] = useState<Release | null>(null);
-  const [releaseToCancel, setReleaseToCancel] = useState<Release | null>(null);
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filters, setFilters] = useState({
@@ -58,23 +67,29 @@ export default function ReleasesPage() {
   }, []);
 
   const filteredReleases = useMemo(() => {
-    return releases.filter((release) => {
-      const searchMatch = !searchQuery.trim() || [
-        release.releasetype,
-        release.location,
-        release.barangay
-      ].some(field => 
-        field?.toString().toLowerCase().includes(searchQuery.toLowerCase())
-      );
+    return releases
+      .filter((release) => {
+        const searchMatch = !searchQuery.trim() || [
+          release.releasetype,
+          release.location,
+          release.barangay
+        ].some(field => 
+          field?.toString().toLowerCase().includes(searchQuery.toLowerCase())
+        );
 
-      const barangayMatch = !filters.selectedBarangay || 
-        release.barangay?.toLowerCase() === filters.selectedBarangay.toLowerCase();
+        const barangayMatch = !filters.selectedBarangay || 
+          release.barangay?.toLowerCase() === filters.selectedBarangay.toLowerCase();
 
-      const typeMatch = !filters.releaseType || 
-        release.releasetype?.toLowerCase() === filters.releaseType.toLowerCase();
+        const typeMatch = !filters.releaseType || 
+          release.releasetype?.toLowerCase() === filters.releaseType.toLowerCase();
 
-      return searchMatch && barangayMatch && typeMatch;
-    });
+        return searchMatch && barangayMatch && typeMatch;
+      })
+      .sort((a, b) => {
+        const dateA = new Date(`${a.releasedate}T${a.releasetime}`);
+        const dateB = new Date(`${b.releasedate}T${b.releasetime}`);
+        return dateB.getTime() - dateA.getTime(); // Descending order
+      });
   }, [releases, searchQuery, filters.selectedBarangay, filters.releaseType]);
 
   const handleFilterChange = (name: string, value: string) => {
@@ -96,8 +111,6 @@ export default function ReleasesPage() {
       });
       if (!response.ok) throw new Error('Failed to delete release');
       await fetchReleases();
-      setIsConfirmOpen(false);
-      setReleaseToCancel(null);
     } catch (error) {
       console.error('Error cancelling release:', error);
       alert('Failed to cancel release');
@@ -105,56 +118,105 @@ export default function ReleasesPage() {
   };
 
   return (
-    <div className="px-8 pt-6 pb-8 max-w-[1600px] mx-auto space-y-6">
-      <div className="flex items-center justify-between pb-6">
-        <div className="flex flex-col gap-1">
+    <div className="px-8 pt-12 pb-8 max-w-[1600px] mx-auto space-y-6">
+      <div className="flex items-center justify-between mb-8">
+        <div>
           <h1 className="text-2xl font-semibold text-gray-900">Releases</h1>
-          <p className="text-sm text-gray-500">Manage scholarship fund releases</p>
+          <p className="text-sm text-gray-500 mt-1">Manage scholarship fund releases</p>
+        </div>
+        <button
+          onClick={() => {
+            setEditingRelease(null);
+            setShowScheduleModal(true);
+          }}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <PlusIcon className="h-5 w-5" />
+          Schedule Release
+        </button>
+      </div>
+      {/* Budget Input Section (moved below title) */}
+      <div className="bg-white rounded-xl shadow p-6 mb-12">
+        <div className="flex items-center gap-3 mb-6">
+          <h3 className="text-lg font-semibold text-gray-900">Admin Budget:</h3>
+          <div className="flex gap-2">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-40"
+              placeholder="Enter budget (₱)"
+              value={budgetInput}
+              onChange={e => setBudgetInput(e.target.value)}
+            />
+            <button
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+              onClick={() => {
+                const val = parseFloat(budgetInput);
+                if (!isNaN(val) && val >= 0) setBudget(val);
+              }}
+            >
+              Set Budget
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-6">
-          <div className="relative w-72">
-            <input
-              type="text"
-              placeholder="Search releases..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 bg-gray-50 text-sm transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:bg-white"
-            />
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-              </svg>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-4 rounded-lg bg-gray-50">
+            <div className="text-sm text-gray-500">Total Released</div>
+            <div className="mt-1 text-2xl font-semibold text-blue-600">
+              {budget > 0 ? (
+                `₱${totalReleased.toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2})}`
+              ) : (
+                <span className="text-gray-400">—</span>
+              )}
             </div>
+            <div className="text-sm text-gray-500 mt-1">All time</div>
+          </div>
+
+          <div className="p-4 rounded-lg bg-gray-50">
+            <div className="text-sm text-gray-500">Remaining Budget</div>
+            <div className={`mt-1 text-2xl font-semibold ${budget === 0 ? 'text-gray-400' : remainingBudget < 0 ? 'text-red-600' : 'text-green-600'}`}>
+              {budget > 0 ? (
+                `₱${remainingBudget.toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2})}`
+              ) : (
+                <span>—</span>
+              )}
+            </div>
+            <div className="text-sm text-gray-500 mt-1">Available funds</div>
           </div>
         </div>
       </div>
+      {/* Search bar in table card header */}
 
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md overflow-hidden mt-12">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <h2 className="text-lg font-semibold text-gray-900">Releases</h2>
               <span className="px-2.5 py-0.5 text-sm bg-blue-100 text-blue-600 rounded-full">{filteredReleases.length} total</span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex gap-3">
+              <div className="relative w-72">
+                <input
+                  type="text"
+                  placeholder="Search releases..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 bg-gray-50 text-sm transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:bg-white"
+                />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              </div>
               <button
                 onClick={() => setShowFilterModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <AdjustmentsHorizontalIcon className="h-5 w-5 text-gray-500" />
                 Filter
-              </button>
-
-              <button
-                onClick={() => {
-                  setEditingRelease(null);
-                  setShowScheduleModal(true);
-                }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <PlusIcon className="h-5 w-5" />
-                Schedule Release
               </button>
             </div>
           </div>
@@ -173,12 +235,12 @@ export default function ReleasesPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount (₱)</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recipients</th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TYPE</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DATE & TIME</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">LOCATION</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">AMOUNT PER PERSON (₱)</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">RECIPIENTS</th>
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ACTIONS</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -214,32 +276,27 @@ export default function ReleasesPage() {
 
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{release.numberofrecipients}</td>
 
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-                        {isPast ? (
-                          <span className="inline-flex items-center px-3 py-1 rounded-md text-sm bg-gray-100 text-gray-600">Done</span>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => {
-                                setEditingRelease(release);
-                                setShowScheduleModal(true);
-                              }}
-                              className="cursor-pointer text-yellow-600 hover:text-yellow-900 bg-yellow-100 hover:bg-yellow-200 px-3 py-1 rounded-md"
-                            >
-                              Edit
-                            </button>
-
-                            <button
-                              onClick={() => {
-                                setReleaseToCancel(release);
-                                setIsConfirmOpen(true);
-                              }}
-                              className="ml-4 cursor-pointer text-red-600 hover:text-red-900 bg-red-100 hover:bg-red-200 px-3 py-1 rounded-md"
-                            >
-                              Delete
-                            </button>
-                          </>
-                        )}
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-yellow-600 bg-yellow-50 text-xs font-medium rounded hover:bg-yellow-100 transition-colors"
+                            onClick={() => {
+                              setEditingRelease(release);
+                              setShowScheduleModal(true);
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-red-600 bg-red-50 text-xs font-medium rounded hover:bg-red-100 transition-colors"
+                            onClick={() => {
+                              setSelectedRelease(release);
+                              setShowDeleteModal(true);
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -265,15 +322,21 @@ export default function ReleasesPage() {
         />
       )}
 
-      {isConfirmOpen && releaseToCancel && (
-        <CancelConfirmationModal
-          isOpen={isConfirmOpen}
+      {showDeleteModal && selectedRelease && (
+        <DeleteReleaseModal
+          isOpen={showDeleteModal}
           onClose={() => {
-            setIsConfirmOpen(false);
-            setReleaseToCancel(null);
+            setShowDeleteModal(false);
+            setSelectedRelease(null);
           }}
-          onConfirm={() => handleCancel(releaseToCancel.releaseid)}
-          release={releaseToCancel}
+          onConfirm={async () => {
+            if (selectedRelease) {
+              await handleCancel(selectedRelease.releaseid);
+              setShowDeleteModal(false);
+              setSelectedRelease(null);
+            }
+          }}
+          release={selectedRelease}
         />
       )}
 

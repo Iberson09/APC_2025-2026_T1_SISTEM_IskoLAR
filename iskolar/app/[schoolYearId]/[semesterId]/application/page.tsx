@@ -863,6 +863,9 @@ export default function ApplicationPage() {
               <div className="text-xs text-gray-500">
                 Please upload clear and valid copies of your documents below.
               </div>
+              <div className="text-xs text-gray-500 mt-1">
+                Note: Maximum file size is 10MB. Supported file types: PDF, JPEG, PNG.
+              </div>
             </div>
             <div className="grid grid-cols-1 gap-5">
               {/* PSA Birth Certificate */}
@@ -888,7 +891,6 @@ export default function ApplicationPage() {
                     />
                     <span className="text-xs text-gray-500 truncate">{birthCertFileName}</span>
                   </div>
-                  <span className="text-xs text-gray-500 ml-1">Max file size: 10MB. Allowed formats: PDF, PNG, JPG, JPEG</span>
                 </div>
               </div>
               {/* Student's Voter's Certification */}
@@ -1005,7 +1007,7 @@ export default function ApplicationPage() {
                     />
                     <span className="text-xs text-gray-500 truncate">{regFileName}</span>
                   </div>
-                  <span className="text-xs text-gray-500 ml-1">Max file size: 10MB. Allowed formats: PDF, PNG, JPG, JPEG</span>
+                  
                 </div>
               </div>
               {/* Certificate of Grades */}

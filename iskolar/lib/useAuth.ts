@@ -71,12 +71,28 @@ export const useAuth = (redirectTo?: string): UseAuthReturn => {
             }
  
             // Verify the session is still valid
-            const { error: testError } = await supabase.auth.getUser();
-            if (testError) {
-              console.error('Session invalid:', testError);
-              await supabase.auth.signOut();
+            try {
+              const { error: testError } = await supabase.auth.getUser();
+              if (testError) {
+                // Don't log error if it's just a missing session (user signed out)
+                if (testError.message !== 'Auth session missing!') {
+                  console.error('Session invalid:', testError);
+                }
+                await supabase.auth.signOut({ scope: 'local' });
+                if (redirectTo) {
+                    router.push(`/auth/sign-in?redirectTo=${redirectTo}`);
+                }
+                return;
+              }
+            } catch (authError: unknown) {
+              // Silently handle AuthSessionMissingError
+              const error = authError as { message?: string; name?: string };
+              if (error?.message !== 'Auth session missing!' && error?.name !== 'AuthSessionMissingError') {
+                console.error('Session verification error:', authError);
+              }
+              await supabase.auth.signOut({ scope: 'local' });
               if (redirectTo) {
-                  router.push(`/auth/sign-in?redirectTo=${redirectTo}`);
+                router.push(`/auth/sign-in?redirectTo=${redirectTo}`);
               }
               return;
             }
@@ -120,8 +136,11 @@ export const useAuth = (redirectTo?: string): UseAuthReturn => {
             try {
                 const { error: testError } = await supabase.auth.getUser();
                 if (testError) {
-                console.error('New session invalid:', testError);
-                await supabase.auth.signOut();
+                // Don't log error if it's just a missing session
+                if (testError.message !== 'Auth session missing!') {
+                    console.error('New session invalid:', testError);
+                }
+                await supabase.auth.signOut({ scope: 'local' });
                 if (redirectTo) {
                     router.push(`/auth/sign-in?redirectTo=${redirectTo}`);
                 }
@@ -131,9 +150,13 @@ export const useAuth = (redirectTo?: string): UseAuthReturn => {
                 setUser(session.user);
                 setIsAuthenticated(true);
                 setIsLoading(false);
-            } catch (authError) {
-                console.error('Error verifying session:', authError);
-                await supabase.auth.signOut();
+            } catch (authError: unknown) {
+                // Silently handle AuthSessionMissingError
+                const error = authError as { message?: string; name?: string };
+                if (error?.message !== 'Auth session missing!' && error?.name !== 'AuthSessionMissingError') {
+                  console.error('Error verifying session:', authError);
+                }
+                await supabase.auth.signOut({ scope: 'local' });
                 if (redirectTo) {
                 router.push(`/auth/sign-in?redirectTo=${redirectTo}`);
                 }
@@ -150,6 +173,10 @@ export const useAuth = (redirectTo?: string): UseAuthReturn => {
             // Clear all auth state first
             setUser(null);
             setIsAuthenticated(false);
+            setIsLoading(false); // Set loading to false to prevent further checks
+
+            // Sign out from Supabase first
+            await supabase.auth.signOut({ scope: 'local' });
 
             // Clear stored tokens
             localStorage.clear(); // Clear all localStorage
@@ -161,15 +188,14 @@ export const useAuth = (redirectTo?: string): UseAuthReturn => {
                     .replace(/^ +/, "")
                     .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
             });
-            
-            // Sign out from Supabase last
-            const { error } = await supabase.auth.signOut();
-            if (error) throw error;
 
             // Don't redirect here - let the component handle it
         } catch (error) {
             console.error('Error signing out:', error);
-            throw error; // Propagate error to component
+            // Still clear local state even if Supabase signOut fails
+            setUser(null);
+            setIsAuthenticated(false);
+            setIsLoading(false);
         }
     };
  

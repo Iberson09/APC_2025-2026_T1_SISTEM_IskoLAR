@@ -7,32 +7,93 @@ if (!GEMINI_API_KEY) {
   console.warn('GEMINI_API_KEY is not set in environment variables');
 }
 
-const systemInstruction = `You are ISKAi, a remarkably friendly, polite, and helpful AI assistant for the IskoLAR scholarship system.
-Your primary goal is to answer user questions based ONLY on the provided 'Frequently Asked Questions (FAQs)' section.
+const systemInstruction = `You are ISKAi, the official AI chatbot of IskoLAR, a centralized scholarship management system for students and administrators.
+Your role is to assist scholars by providing clear, accurate, and context-aware answers about their scholarship journey.
 
-Always use markdown bold formatting (**text**) to highlight important keywords, clickable items, or key actions for the user. For example: "You can find this on your **Profile** page." or "Click **Save Changes** to continue."
+--- YOUR PERSONALITY ---
+- Be warm, friendly, and genuinely helpful - like a supportive friend who happens to know everything about IskoLAR
+- Add personality to your responses while staying professional (e.g., "Great question!", "I'd be happy to help with that!", "Let me check that for you")
+- Show empathy when users face issues (e.g., "I understand that can be frustrating")
+- Celebrate positive moments (e.g., "Awesome! Your application was submitted successfully!")
+- Keep responses conversational but always circle back to helping users navigate the IskoLAR system
+- Use emojis sparingly and naturally when appropriate (✓, 📝, 🎓) but don't overdo it
 
-If the user asks a question that requires personal data—like 'disbursement schedule', 'application status', 'my profile', 'my name', 'my information', 'my application', 'announcements', 'latest news', 'my account', 'my details', or anything specific to their personal account—you MUST respond with ONLY the following JSON object: {"tool_code": "FETCH_USER_DATA", "query": "[user's original query]"}. Do not add any other text or explanation.
+--- YOUR CORE FUNCTIONS ---
 
-Examples of personal queries that need FETCH_USER_DATA:
-- "What is my application status?"
-- "Show me my profile"
-- "What are the latest announcements?"
-- "When is my disbursement?"
-- "What's my name?"
-- "Tell me about my account"
-- "Do I have any updates?"
+1. ANSWER QUESTIONS USING AVAILABLE DATA
+   - ALWAYS prioritize the PAGE CONTEXT provided to you - this contains what the user is currently seeing on their screen
+   - Use the provided user manual and FAQs for general system questions
+   - When users ask about "my name", "my status", "my profile", etc., look in the PAGE CONTEXT first
+   - Only say you can't find information if it's truly not in the page context or FAQs
 
-If you cannot answer a question from the provided FAQs, politely say something like, "That's a great question! I don't have that information right now, but the scholarship office would be the best place to ask."
+2. STAY WITHIN IskoLAR'S CONTEXT
+   - Only answer questions related to IskoLAR, scholarships, applications, profiles, announcements, and system processes
+   - If a query is unrelated to IskoLAR (e.g., general trivia, non-scholarship questions), respond politely with personality:
+     "Haha, that's an interesting question, but it's a bit outside my expertise! I'm here to help you with your IskoLAR scholarship and account. What can I help you with today?"
 
-Keep your answers concise, exceptionally friendly, and clear. Do not make up information.
-Base all your general knowledge answers on the following text:
+3. TONE AND CLARITY
+   - Sound friendly, concise, and approachable, but maintain professionalism
+   - Use a casual, conversational tone while maintaining proper capitalization and grammar
+   - Start sentences with capital letters, but keep the overall tone relaxed and modern
+   - If unsure about the query, ask clarifying questions before answering
+   - Provide short, step-by-step responses when guiding users through system processes
+   - Always use markdown bold formatting (**text**) to highlight important keywords, clickable items, or key actions
+
+4. DATA PRIORITY
+   1. **First**: Check the PAGE CONTEXT - this is what's on the user's screen right now
+   2. **Second**: Use FAQ knowledge base for general questions
+   3. **Third**: If information is not available, guide them to the right page
+
+--- USING PAGE CONTEXT ---
+When page context is provided, it will be marked as:
+--- Page Context ---
+[Current page name]
+[Data visible on the page]
+
+Use this information to answer questions like:
+- "What's my name?" → Check page context for user name
+- "What's my application status?" → Check page context for application status
+- "What announcements are there?" → Check page context for announcements list
+
+--- RESPONSE EXAMPLES ---
+
+User: "what's my name?"
+Page Context: Profile page showing "Name: Juan Dela Cruz"
+You: "Based on your profile, your name is **Juan Dela Cruz**! Need anything else?"
+
+User: "what's my application status?"
+Page Context: Status page showing "Application Status: PENDING"
+You: "I can see your application status is currently **PENDING**! This means your application is being reviewed. You'll be notified once there's an update. Hang tight! 📝"
+
+User: "what's my application status?"
+Page Context: No application data visible
+You: "I checked your account and it looks like you haven't submitted a scholarship application yet - no worries! Let me walk you through how to get started..."
+
+User: "can i still apply if i missed the deadline?"
+You: "I understand the concern! Unfortunately, according to IskoLAR's policies, late applications can't be accepted for this cycle. But don't worry - you'll have another chance to apply in the next semester! Would you like me to help you prepare for that?"
+
+User: "who's the president of the philippines?"
+You: "Haha, that's an interesting question, but it's a bit outside my expertise! I'm here to help you with your IskoLAR scholarship and account. What can I help you with today?"
+
+User: "how do i update my profile?"
+You: "Great question! Updating your profile is easy. Here's what you need to do: 1. Click '**Profile**' in the sidebar. 2. Edit your details in the form. 3. Click '**Save Changes**'. 4. You'll see a success message confirming your update. Let me know if you need any help with that!"
+
+User: "thanks!"
+You: "You're very welcome! I'm always here if you need anything else. Happy to help with your scholarship journey! 🎓"
+
+--- YOUR IDENTITY ---
+You are ISKAi, an intelligent and helpful digital assistant designed to make the IskoLAR experience smoother for every scholar.
+Your goal is to be reliable, respectful, and always context-aware.
+
+If you cannot answer a question from the provided FAQs or context, politely say: "That's a great question! I don't have that information right now, but the scholarship office would be the best place to ask."
+
+Do not make up information. Base all your general knowledge answers on the following FAQs:
 ${FAQ_KNOWLEDGE_BASE}
 `;
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, query } = await request.json();
+    const { messages, query, pageContext } = await request.json();
 
     if (!GEMINI_API_KEY) {
       return NextResponse.json(
@@ -46,7 +107,13 @@ export async function POST(request: NextRequest) {
       .map((m: { role: string; content: string }) => `${m.role}: ${m.content}`)
       .join('\n');
 
-    const fullPrompt = `${systemInstruction}\n\n--- Conversation History ---\n${conversationHistory}\n\nuser: ${query}`;
+    // Add page context if provided
+    let contextSection = '';
+    if (pageContext) {
+      contextSection = `\n\n--- Page Context ---\n${pageContext}\n`;
+    }
+
+    const fullPrompt = `${systemInstruction}${contextSection}\n\n--- Conversation History ---\n${conversationHistory}\n\nuser: ${query}`;
 
     // Call Google Gemini API with timeout
     console.log('[ISKAi] Calling Gemini API...');
@@ -98,19 +165,6 @@ export async function POST(request: NextRequest) {
 
     console.log('[ISKAi] Bot response:', botResponse.substring(0, 100));
 
-    // Check if response is asking for user data
-    try {
-      const parsedResponse = JSON.parse(botResponse);
-      if (parsedResponse.tool_code === 'FETCH_USER_DATA') {
-        console.log('[ISKAi] Fetching user data for query:', parsedResponse.query);
-        // Fetch real user data from Supabase
-        const userData = await fetchUserData(parsedResponse.query, request);
-        return NextResponse.json({ message: userData });
-      }
-    } catch {
-      // Not JSON, just a regular response
-    }
-
     return NextResponse.json({ message: botResponse });
   } catch (error) {
     console.error('[ISKAi] Error in chat API:', error);
@@ -127,167 +181,5 @@ export async function POST(request: NextRequest) {
       { message: "Sorry, I'm having trouble connecting right now. Please try again in a moment!" },
       { status: 200 }
     );
-  }
-}
-
-async function fetchUserData(query: string, request: NextRequest): Promise<string> {
-  try {
-    const { createClient } = await import('@supabase/supabase-js');
-    
-    // Create Supabase client with the request context to get the authenticated user
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: {
-          headers: {
-            Authorization: request.headers.get('Authorization') || '',
-          },
-        },
-      }
-    );
-
-    // Get the authenticated user from the session
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader) {
-      return "I need you to be logged in to fetch your personal information. Please make sure you're logged in!";
-    }
-
-    // Extract token and get user
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      console.error('Auth error:', authError);
-      return "I'm having trouble verifying your identity. Please try logging out and back in.";
-    }
-
-    const lowerCaseQuery = query.toLowerCase();
-
-    // Fetch Profile Information
-    if (lowerCaseQuery.includes('profile') || lowerCaseQuery.includes('name') || lowerCaseQuery.includes('my info')) {
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('first_name, last_name, email_address, contact_number, year_level, gpa')
-        .eq('email_address', user.email)
-        .single();
-
-      if (userError || !userData) {
-        return "I couldn't find your profile information. Please make sure your profile is set up correctly.";
-      }
-
-      return `Here's your profile information:
-
-**Name:** ${userData.first_name} ${userData.last_name}
-**Email:** ${userData.email_address}
-**Contact:** ${userData.contact_number || 'Not provided'}
-**Year Level:** ${userData.year_level || 'Not provided'}
-**GPA:** ${userData.gpa || 'Not provided'}
-
-You can update these details in the **Profile** section.`;
-    }
-
-    // Fetch Application Status
-    if (lowerCaseQuery.includes('status') || lowerCaseQuery.includes('application')) {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('user_id')
-        .eq('email_address', user.email)
-        .single();
-
-      if (!userData) {
-        return "I couldn't find your user record.";
-      }
-
-      const { data: applications, error: appError } = await supabase
-        .from('applications')
-        .select('application_status, created_at, semester_id')
-        .eq('user_id', userData.user_id)
-        .order('created_at', { ascending: false })
-        .limit(3);
-
-      if (appError) {
-        console.error('Application error:', appError);
-        return "I'm having trouble fetching your application status. Please try again later.";
-      }
-
-      if (!applications || applications.length === 0) {
-        return "You don't have any applications yet. To apply, go to **Scholarship → A.Y. 2025-2026 → 1st Semester → Application**.";
-      }
-
-      const latestApp = applications[0];
-      const statusDisplay = latestApp.application_status || 'pending';
-      const date = new Date(latestApp.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-
-      let response = `**Your Latest Application Status:**\n\n**Status:** ${statusDisplay.toUpperCase()}\n**Submitted:** ${date}`;
-
-      if (applications.length > 1) {
-        response += `\n\nYou have **${applications.length}** total applications. Visit **Scholarship → Status** to see all details.`;
-      }
-
-      return response;
-    }
-
-    // Fetch Announcements
-    if (lowerCaseQuery.includes('announcement') || lowerCaseQuery.includes('news') || lowerCaseQuery.includes('update')) {
-      const { data: announcements, error: announcementError } = await supabase
-        .from('announcements')
-        .select('title, content, publish_date')
-        .order('publish_date', { ascending: false })
-        .limit(3);
-
-      if (announcementError) {
-        return "I'm having trouble fetching announcements. Please check the **Announcements** section directly.";
-      }
-
-      if (!announcements || announcements.length === 0) {
-        return "There are no announcements at the moment. Check back later or visit the **Announcements** page for updates!";
-      }
-
-      let response = "**Latest Announcements:**\n\n";
-      announcements.forEach((ann, index) => {
-        const date = ann.publish_date ? new Date(ann.publish_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recent';
-        response += `${index + 1}. **${ann.title}** (${date})\n`;
-        if (ann.content) {
-          const preview = ann.content.length > 100 ? ann.content.substring(0, 100) + '...' : ann.content;
-          response += `   ${preview}\n\n`;
-        }
-      });
-
-      response += "Visit the **Announcements** page to read more!";
-      return response;
-    }
-
-    // Fetch Disbursement Schedule (if table exists)
-    if (lowerCaseQuery.includes('disbursement') || lowerCaseQuery.includes('schedule') || lowerCaseQuery.includes('payment')) {
-      // Check announcements for disbursement info
-      const { data: announcements } = await supabase
-        .from('announcements')
-        .select('title, content, publish_date')
-        .or('title.ilike.%disbursement%,content.ilike.%disbursement%')
-        .order('publish_date', { ascending: false })
-        .limit(2);
-
-      if (announcements && announcements.length > 0) {
-        let response = "**Disbursement Information:**\n\n";
-        announcements.forEach((ann, index) => {
-          const date = ann.publish_date ? new Date(ann.publish_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recent';
-          response += `${index + 1}. **${ann.title}** (${date})\n`;
-          if (ann.content) {
-            const preview = ann.content.length > 150 ? ann.content.substring(0, 150) + '...' : ann.content;
-            response += `   ${preview}\n\n`;
-          }
-        });
-        response += "Check the **Announcements** page for full details!";
-        return response;
-      }
-
-      return "Disbursement schedules are typically posted in the **Announcements** section. Please check there for the latest updates!";
-    }
-
-    return "I can help you with your **profile**, **application status**, **announcements**, or **disbursement schedule**. What would you like to know?";
-  } catch (error) {
-    console.error('Error fetching user data:', error);
-    return "I'm having trouble accessing your data right now. Please try again later or contact support if the issue persists.";
   }
 }

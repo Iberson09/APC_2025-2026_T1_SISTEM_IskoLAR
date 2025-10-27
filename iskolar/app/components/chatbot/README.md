@@ -16,18 +16,34 @@ This directory contains the ISKAi chatbot assistant integrated into the IskoLAR 
 
 The chatbot uses a Next.js API route at `/api/ai/chat` to:
 1. Receive user messages
-2. Build conversation history
-3. Call Google Gemini API with system instructions
-4. Handle user-specific data requests
-5. Return bot responses
+2. Build conversation history with context
+3. Apply ISKAi system prompt and personality
+4. Call Google Gemini API with enhanced instructions
+5. Detect and handle user-specific data requests via Supabase
+6. Return formatted bot responses
 
 ## Features
 
-- **FAQ-based responses** - Answers questions based on IskoLAR system FAQs
-- **Personal data handling** - Detects when users ask for profile, status, or disbursement info
-- **Markdown formatting** - Uses **bold** text to highlight important keywords
+- **Context-aware responses** - Prioritizes page context before querying database
+- **FAQ-based knowledge** - Answers questions based on IskoLAR system FAQs
+- **Personal data integration** - Fetches real user data (profile, applications, announcements, disbursements) from Supabase
+- **Scope management** - Politely redirects out-of-scope queries
+- **Markdown formatting** - Uses **bold** text to highlight important keywords and actions
+- **Friendly tone** - Casual, lowercase style while maintaining professionalism
+- **Step-by-step guidance** - Provides clear, numbered instructions for system processes
 - **Persistent chat** - Messages remain in the widget until closed
 - **Responsive design** - Fixed position widget that doesn't interfere with sidebar
+
+## ISKAi Personality
+
+ISKAi is designed to be:
+- **Friendly and approachable** - Uses casual, modern language
+- **Reliable and accurate** - Only provides verified information
+- **Context-aware** - Understands when to use FAQs vs. fetching live data
+- **Helpful** - Guides users through the IskoLAR system step-by-step
+- **Respectful of scope** - Stays within IskoLAR-related topics
+
+See `SYSTEM_PROMPT.md` for detailed guidelines and examples.
 
 ## Configuration
 

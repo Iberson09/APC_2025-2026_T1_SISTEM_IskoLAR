@@ -1,0 +1,88 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import AdminNavbar from '@/app/components/admin/AdminNavbar';
+import SchoolYearSection from '@/app/components/admin/SchoolYearSection';
+import RecentApplications from '@/app/components/admin/RecentApplications';
+import { SchoolYear } from '@/lib/types/school-year';
+import { Application } from '@/lib/types/user';
+
+interface ExtendedApplication extends Application {
+  name: string;
+  barangay: string;
+}
+
+export default function ApplicationsPage() {
+  const [schoolYears, setSchoolYears] = useState<SchoolYear[]>([]);
+  const [applications, setApplications] = useState<ExtendedApplication[]>([]);
+  const [isLoadingYears, setIsLoadingYears] = useState(true);
+  const [isLoadingApps, setIsLoadingApps] = useState(true);
+  const [showAddYearModal, setShowAddYearModal] = useState(false);
+
+  // Fetch school years
+  useEffect(() => {
+    async function fetchSchoolYears() {
+      try {
+        const response = await fetch('/api/admin/school-years');
+        if (!response.ok) throw new Error('Failed to fetch school years');
+        const data = await response.json();
+        setSchoolYears(data);
+      } catch (error) {
+        console.error('Error fetching school years:', error);
+      } finally {
+        setIsLoadingYears(false);
+      }
+    }
+
+    fetchSchoolYears();
+  }, []);
+
+  // Fetch recent applications
+  useEffect(() => {
+    async function fetchRecentApplications() {
+      try {
+        const response = await fetch('/api/admin/applications/recent');
+        if (!response.ok) throw new Error('Failed to fetch applications');
+        const data = await response.json();
+        setApplications(data);
+      } catch (error) {
+        console.error('Error fetching applications:', error);
+      } finally {
+        setIsLoadingApps(false);
+      }
+    }
+
+    fetchRecentApplications();
+  }, []);
+
+  const handleAddYear = () => {
+    setShowAddYearModal(true);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <AdminNavbar />
+      
+      <main className="p-6 max-w-7xl mx-auto">
+        <div className="space-y-6">
+          {/* School Year Section */}
+          <SchoolYearSection 
+            schoolYears={schoolYears}
+            onAddYear={handleAddYear}
+          />
+
+          {/* Recent Applications Section */}
+          <RecentApplications 
+            applications={applications}
+            isLoading={isLoadingApps}
+          />
+        </div>
+      </main>
+
+      {/* TODO: Implement AddYearModal component */}
+      {showAddYearModal && (
+        <div>Modal Placeholder</div>
+      )}
+    </div>
+  );
+}

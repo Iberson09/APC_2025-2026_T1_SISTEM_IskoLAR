@@ -51,8 +51,52 @@ export async function POST(request: NextRequest) {
         const userExists = existingUsers?.users.some(u => u.email === email_address);
         
         if (userExists) {
-          // User exists but password is wrong
-          console.log('User exists but password is incorrect');
+          // User exists but password doesn't match - try to sync it from admin table if available
+          console.log('User exists but password is incorrect. Attempting to sync password from admin table...');
+          
+          // If admin table has a password, try to update the auth user's password to match
+          if (adminData.password) {
+            const existingUser = existingUsers?.users.find(u => u.email === email_address);
+            
+            if (existingUser) {
+              // Update the auth user's password to match the admin table
+              const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+                existingUser.id,
+                { password: adminData.password }
+              );
+              
+              if (updateError) {
+                console.error('Error syncing password:', updateError);
+                return NextResponse.json({ error: 'Invalid admin credentials' }, { status: 401 });
+              }
+              
+              console.log('Password synced from admin table. Attempting sign in...');
+              
+              // Try signing in with the synced password
+              const { data: syncedSignInData, error: syncedSignInError } = await supabaseAdmin.auth.signInWithPassword({
+                email: email_address,
+                password: adminData.password,
+              });
+              
+              if (syncedSignInError) {
+                console.error('Sign in failed after password sync:', syncedSignInError);
+                return NextResponse.json({ error: 'Invalid admin credentials' }, { status: 401 });
+              }
+              
+              console.log('Sign in successful after password sync');
+              return NextResponse.json({ 
+                success: true,
+                session: syncedSignInData.session,
+                admin: {
+                  ...adminData,
+                  role: adminData.role.name
+                }
+              });
+            }
+          }
+          
+          // If no password in admin table or sync failed, return error
+          console.log('User exists but password is incorrect and no sync available');
           return NextResponse.json({ error: 'Invalid admin credentials' }, { status: 401 });
         }
       }

@@ -20,12 +20,10 @@ export async function POST(request: Request) {
 
     console.log('Searching for user with email:', email); // Debug log
 
-    // Define role IDs
+    // Define role IDs (for scholars/users table)
     const ROLE_IDS = {
       SUPER_ADMIN: 'ebfbc2ad-e3e6-43c2-bae8-f54637964b37',
       USER: 'e41c5181-6733-4bc6-ad1d-5da075dd68d4',
-      FINANCE: 'cc52e911-277e-480e-871d-645fd9696f5a',
-      REVIEWER: '9ac35812-cc11-4594-be4a-473b88353d1d'
     };
 
     // First, let's check all users to debug
@@ -59,8 +57,8 @@ export async function POST(request: Request) {
       return NextResponse.json(response);
     }
 
-    // Determine which type of user we're dealing with
-    let userType: 'admin' | 'user' | 'finance' | 'reviewer';
+    // Determine which type of user we're dealing with (scholars are just 'user')
+    let userType: 'admin' | 'user';
     const userId = user.user_id;
     const userEmail = user.email_address;
 
@@ -69,37 +67,12 @@ export async function POST(request: Request) {
       case ROLE_IDS.SUPER_ADMIN:
         userType = 'admin';
         break;
-      case ROLE_IDS.FINANCE:
-        userType = 'finance';
-        break;
-      case ROLE_IDS.REVIEWER:
-        userType = 'reviewer';
-        break;
       case ROLE_IDS.USER:
       default:
         userType = 'user';
         break;
     }
 
-    console.log('Mapped user type:', { roleId: user.role_id, userType }); // Debug log
-
-    // Map role ID to userType
-    switch (user.role_id) {
-      case ROLE_IDS.SUPER_ADMIN:
-        userType = 'admin';
-        break;
-      case ROLE_IDS.FINANCE:
-        userType = 'finance';
-        break;
-      case ROLE_IDS.REVIEWER:
-        userType = 'reviewer';
-        break;
-      case ROLE_IDS.USER:
-      default:
-        userType = 'user';
-        break;
-    }
-    
     console.log('Mapped user type:', { roleId: user.role_id, userType }); // Debug log
 
     console.log('Found user:', {

@@ -153,6 +153,10 @@ interface DashboardStats {
     school_year: number;
     count: number;
   }>;
+  applicationsByBarangay?: Record<string, number>;
+  applicationsBySchool?: Record<string, number>;
+  applicationsByCourse?: Record<string, number>;
+  averageProcessingTime?: number; // in days
 }
 
 export default function DashboardPage() {
@@ -172,170 +176,47 @@ export default function DashboardPage() {
       withdrawn: 0,
     },
     applicationsBySemester: [],
+    averageProcessingTime: 0,
   });
   const [loading, setLoading] = useState(true);
   const [chartView, setChartView] = useState<'status' | 'barangay' | 'course' | 'school'>('status');
+  const [timeRange, setTimeRange] = useState<'7days' | '30days' | '90days' | 'all'>('30days');
 
   // Fetch dashboard data
   useEffect(() => {
     async function fetchDashboardData() {
       try {
-        console.log('[Dashboard] Starting to fetch data...');
+        console.log('[Dashboard] Starting to fetch data from API...');
+        setLoading(true);
         
-        // Temporarily using sample data for stable dashboard
-        // TODO: Re-enable Supabase queries once database performance is optimized
-        console.log('[Dashboard] Loading sample data for demonstration');
-        setSampleData();
-        return;
+        const response = await fetch(`/api/admin/dashboard?timeRange=${timeRange}`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch dashboard data: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        console.log('[Dashboard] Successfully fetched data:', {
+          totalApplications: data.totalApplications,
+          pendingApplications: data.pendingApplications,
+          totalUsers: data.totalUsers,
+          timeRange,
+        });
+        
+        setStats(data);
       } catch (error) {
         console.error('[Dashboard] Error fetching dashboard data:', error);
-        // Use sample data on error
-        setSampleData();
+        // Show error message to user
+        alert('Failed to load dashboard data. Please refresh the page or contact support.');
       } finally {
         setLoading(false);
         console.log('[Dashboard] Loading complete');
       }
     }
 
-    // Function to set sample data for demonstration
-    function setSampleData() {
-      console.log('[Dashboard] Loading sample data for demonstration...');
-      
-      const sampleData = {
-        totalApplications: 248,
-        pendingApplications: 42,
-        approvedApplications: 167,
-        rejectedApplications: 28,
-        totalUsers: 312,
-        recentApplications: [
-          {
-            id: '1',
-            user_name: 'Maria Clara Santos',
-            user_email: 'maria.santos@student.edu.ph',
-            status: 'pending',
-            created_at: new Date('2025-10-23T14:30:00').toISOString(),
-            semester_name: 'FIRST',
-            school_year: 2025,
-            barangay: 'Poblacion',
-            school: 'University of Makati',
-          },
-          {
-            id: '2',
-            user_name: 'Juan Miguel Reyes',
-            user_email: 'juan.reyes@student.edu.ph',
-            status: 'pending',
-            created_at: new Date('2025-10-23T10:15:00').toISOString(),
-            semester_name: 'FIRST',
-            school_year: 2025,
-            barangay: 'Bel-Air',
-            school: 'De La Salle University - Manila',
-          },
-          {
-            id: '3',
-            user_name: 'Sofia Isabel Cruz',
-            user_email: 'sofia.cruz@student.edu.ph',
-            status: 'pending',
-            created_at: new Date('2025-10-22T16:45:00').toISOString(),
-            semester_name: 'FIRST',
-            school_year: 2025,
-            barangay: 'San Lorenzo',
-            school: 'Mapúa University',
-          },
-          {
-            id: '4',
-            user_name: 'Miguel Angel Bautista',
-            user_email: 'miguel.bautista@student.edu.ph',
-            status: 'approved',
-            created_at: new Date('2025-10-22T09:20:00').toISOString(),
-            semester_name: 'FIRST',
-            school_year: 2025,
-            barangay: 'Guadalupe Nuevo',
-            school: 'Polytechnic University of the Philippines',
-          },
-          {
-            id: '5',
-            user_name: 'Ana Patricia Mendoza',
-            user_email: 'ana.mendoza@student.edu.ph',
-            status: 'pending',
-            created_at: new Date('2025-10-21T13:10:00').toISOString(),
-            semester_name: 'FIRST',
-            school_year: 2025,
-            barangay: 'Makati Commercial Center',
-            school: 'University of the Philippines - Diliman',
-          },
-          {
-            id: '6',
-            user_name: 'Carlos Eduardo Diaz',
-            user_email: 'carlos.diaz@student.edu.ph',
-            status: 'approved',
-            created_at: new Date('2025-10-21T11:30:00').toISOString(),
-            semester_name: 'FIRST',
-            school_year: 2025,
-            barangay: 'Pio del Pilar',
-            school: 'Ateneo de Manila University',
-          },
-          {
-            id: '7',
-            user_name: 'Isabella Marie Garcia',
-            user_email: 'isabella.garcia@student.edu.ph',
-            status: 'approved',
-            created_at: new Date('2025-10-20T15:40:00').toISOString(),
-            semester_name: 'FIRST',
-            school_year: 2025,
-            barangay: 'Palanan',
-            school: 'Far Eastern University',
-          },
-          {
-            id: '8',
-            user_name: 'Rafael Antonio Torres',
-            user_email: 'rafael.torres@student.edu.ph',
-            status: 'rejected',
-            created_at: new Date('2025-10-20T08:25:00').toISOString(),
-            semester_name: 'FIRST',
-            school_year: 2025,
-            barangay: 'Cembo',
-            school: 'Technological Institute of the Philippines',
-          },
-          {
-            id: '9',
-            user_name: 'Gabriela Rose Aquino',
-            user_email: 'gabriela.aquino@student.edu.ph',
-            status: 'approved',
-            created_at: new Date('2025-10-19T14:55:00').toISOString(),
-            semester_name: 'FIRST',
-            school_year: 2025,
-            barangay: 'Dasmariñas',
-            school: 'University of Santo Tomas',
-          },
-          {
-            id: '10',
-            user_name: 'Luis Fernando Ramos',
-            user_email: 'luis.ramos@student.edu.ph',
-            status: 'pending',
-            created_at: new Date('2025-10-19T10:05:00').toISOString(),
-            semester_name: 'FIRST',
-            school_year: 2025,
-            barangay: 'Valenzuela',
-            school: 'Adamson University',
-          },
-        ],
-        applicationsByStatus: {
-          pending: 42,
-          submitted: 0,
-          under_review: 0,
-          approved: 167,
-          rejected: 28,
-          withdrawn: 0,
-        },
-        applicationsBySemester: [],
-      };
-      
-      setStats(sampleData);
-      console.log('[Dashboard] Sample data loaded successfully');
-    }
-
     fetchDashboardData();
-  }, []);
+  }, [timeRange]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -372,9 +253,9 @@ export default function DashboardPage() {
           labels: ['Pending', 'Approved', 'Rejected'],
           datasets: [{
             data: [
-              stats.applicationsByStatus.pending,
+              stats.applicationsByStatus.pending + stats.applicationsByStatus.submitted + stats.applicationsByStatus.under_review,
               stats.applicationsByStatus.approved,
-              stats.applicationsByStatus.rejected,
+              stats.applicationsByStatus.rejected + stats.applicationsByStatus.withdrawn,
             ],
             backgroundColor: [
               'rgb(251, 191, 36)',  // yellow - pending
@@ -386,11 +267,20 @@ export default function DashboardPage() {
           }]
         };
       
-      case 'barangay':
+      case 'barangay': {
+        const barangayData = stats.applicationsByBarangay || {};
+        const sortedBarangays = Object.entries(barangayData)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 20); // Top 20 barangays
+        
+        if (sortedBarangays.length === 0) {
+          return { labels: ['No data'], datasets: [{ data: [0], backgroundColor: ['rgb(200, 200, 200)'] }] };
+        }
+        
         return {
-          labels: ['Poblacion', 'Bel-Air', 'San Lorenzo', 'Guadalupe Nuevo', 'Guadalupe Viejo', 'Makati CBD', 'Pio del Pilar', 'Palanan', 'Cembo', 'South Cembo', 'West Rembo', 'East Rembo', 'Comembo', 'Pembo', 'Rizal', 'Olympia', 'Dasmariñas', 'Valenzuela', 'San Isidro', 'Singkamas'],
+          labels: sortedBarangays.map(([name]) => name),
           datasets: [{
-            data: [18, 15, 22, 16, 14, 25, 19, 12, 17, 11, 13, 10, 14, 16, 9, 15, 20, 13, 11, 19],
+            data: sortedBarangays.map(([, count]) => count),
             backgroundColor: [
               'rgb(239, 68, 68)', 'rgb(249, 115, 22)', 'rgb(251, 146, 60)', 'rgb(251, 191, 36)',
               'rgb(234, 179, 8)', 'rgb(163, 230, 53)', 'rgb(74, 222, 128)', 'rgb(34, 197, 94)',
@@ -402,12 +292,22 @@ export default function DashboardPage() {
             borderColor: '#fff',
           }]
         };
+      }
       
-      case 'course':
+      case 'course': {
+        const courseData = stats.applicationsByCourse || {};
+        const sortedCourses = Object.entries(courseData)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 15); // Top 15 courses
+        
+        if (sortedCourses.length === 0) {
+          return { labels: ['No data'], datasets: [{ data: [0], backgroundColor: ['rgb(200, 200, 200)'] }] };
+        }
+        
         return {
-          labels: ['Computer Science', 'Information Technology', 'Engineering', 'Nursing', 'Education', 'Business Administration', 'Accountancy', 'Psychology', 'Others'],
+          labels: sortedCourses.map(([name]) => name),
           datasets: [{
-            data: [45, 38, 32, 28, 25, 22, 18, 15, 25],
+            data: sortedCourses.map(([, count]) => count),
             backgroundColor: [
               'rgb(59, 130, 246)',   // blue
               'rgb(139, 92, 246)',   // purple
@@ -418,34 +318,55 @@ export default function DashboardPage() {
               'rgb(34, 197, 94)',    // green
               'rgb(20, 184, 166)',   // teal
               'rgb(107, 114, 128)',  // gray
+              'rgb(220, 38, 38)',    // dark red
+              'rgb(5, 150, 105)',    // dark green
+              'rgb(37, 99, 235)',    // dark blue
+              'rgb(127, 29, 29)',    // maroon
+              'rgb(251, 191, 36)',   // gold
+              'rgb(249, 115, 22)',   // dark orange
             ],
             borderWidth: 2,
             borderColor: '#fff',
           }]
         };
+      }
       
-      case 'school':
+      case 'school': {
+        const schoolData = stats.applicationsBySchool || {};
+        const sortedSchools = Object.entries(schoolData)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 15); // Top 15 schools
+        
+        if (sortedSchools.length === 0) {
+          return { labels: ['No data'], datasets: [{ data: [0], backgroundColor: ['rgb(200, 200, 200)'] }] };
+        }
+        
         return {
-          labels: ['University of Makati', 'De La Salle University', 'Ateneo de Manila', 'UP Diliman', 'Mapúa University', 'PUP', 'UST', 'FEU', 'Adamson University', 'TIP'],
+          labels: sortedSchools.map(([name]) => name),
           datasets: [{
-            data: [45, 38, 32, 28, 25, 22, 18, 16, 14, 10],
+            data: sortedSchools.map(([, count]) => count),
             backgroundColor: [
-              'rgb(220, 38, 38)',    // red - UMak
-              'rgb(5, 150, 105)',    // green - DLSU
-              'rgb(37, 99, 235)',    // blue - Ateneo
-              'rgb(127, 29, 29)',    // maroon - UP
-              'rgb(239, 68, 68)',    // red - Mapua
-              'rgb(127, 29, 29)',    // maroon - PUP
-              'rgb(251, 191, 36)',   // yellow - UST
-              'rgb(5, 150, 105)',    // green - FEU
-              'rgb(37, 99, 235)',    // blue - Adamson
-              'rgb(239, 68, 68)',    // red - TIP
+              'rgb(220, 38, 38)',    // red
+              'rgb(5, 150, 105)',    // green
+              'rgb(37, 99, 235)',    // blue
+              'rgb(127, 29, 29)',    // maroon
+              'rgb(239, 68, 68)',    // red
+              'rgb(127, 29, 29)',    // maroon
+              'rgb(251, 191, 36)',   // yellow
+              'rgb(5, 150, 105)',    // green
+              'rgb(37, 99, 235)',    // blue
+              'rgb(239, 68, 68)',    // red
               'rgb(107, 114, 128)',  // gray
+              'rgb(249, 115, 22)',   // orange
+              'rgb(34, 197, 94)',    // green
+              'rgb(59, 130, 246)',   // blue
+              'rgb(236, 72, 153)',   // pink
             ],
             borderWidth: 2,
             borderColor: '#fff',
           }]
         };
+      }
       
       default:
         return { labels: [], datasets: [] };
@@ -453,17 +374,33 @@ export default function DashboardPage() {
   };
 
   const getChartTitle = () => {
+    const timeLabel = getTimeRangeLabel();
     switch (chartView) {
       case 'status':
-        return 'Application Status Breakdown';
+        return `Application Status Breakdown (${timeLabel})`;
       case 'barangay':
-        return 'Applications by Barangay';
+        return `Applications by Barangay (${timeLabel})`;
       case 'course':
-        return 'Applications by Course/Program';
+        return `Applications by Course/Program (${timeLabel})`;
       case 'school':
-        return 'Applications by School';
+        return `Applications by School (${timeLabel})`;
       default:
         return 'Breakdown';
+    }
+  };
+
+  const getTimeRangeLabel = () => {
+    switch (timeRange) {
+      case '7days':
+        return 'Last 7 Days';
+      case '30days':
+        return 'Last 30 Days';
+      case '90days':
+        return 'Last 90 Days';
+      case 'all':
+        return 'All Time';
+      default:
+        return 'Last 30 Days';
     }
   };
 
@@ -488,6 +425,9 @@ export default function DashboardPage() {
             <p className="mt-2 text-sm text-gray-600">
               Welcome back! Here&apos;s an overview of your scholarship management system.
             </p>
+            <p className="mt-1 text-sm font-medium text-blue-600">
+              Viewing data: {getTimeRangeLabel()}
+            </p>
           </div>
           <div className="mt-4 lg:mt-0">
             <p className="text-sm text-gray-500">
@@ -506,20 +446,21 @@ export default function DashboardPage() {
       {/* 
         KEY METRICS GRID - Most Critical Information
         
-        WHY THESE 4 METRICS?
+        WHY THESE METRICS?
         1. TOTAL APPLICATIONS - Shows overall program scale and growth
         2. NEEDS REVIEW - Most urgent action item for admin (prevents backlog)
         3. APPROVED - Success metric (program effectiveness, conversion rate)
-        4. REGISTERED USERS - Shows reach and potential applicant pool
+        4. AVG PROCESSING TIME - Efficiency metric (how fast applications are handled)
+        5. REGISTERED USERS - Shows reach and potential applicant pool
       */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         {/* Total Applications - Most Critical */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Applications</p>
               <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalApplications}</p>
-              <p className="text-xs text-gray-500 mt-1">All time</p>
+              <p className="text-xs text-gray-500 mt-1">{getTimeRangeLabel()}</p>
             </div>
             <div className="p-3 bg-blue-50 rounded-lg">
               <UserGroupIcon className="w-6 h-6 text-blue-600" />
@@ -533,7 +474,7 @@ export default function DashboardPage() {
             <div>
               <p className="text-sm font-semibold text-orange-800">Needs Review</p>
               <p className="text-3xl font-bold text-orange-900 mt-2">{stats.pendingApplications}</p>
-              <p className="text-xs text-orange-700 mt-1 font-medium">Action required</p>
+              <p className="text-xs text-orange-700 mt-1 font-medium">{getTimeRangeLabel()}</p>
             </div>
             <div className="p-3 bg-yellow-100 rounded-lg">
               <ClockIcon className="w-6 h-6 text-orange-600" />
@@ -556,6 +497,30 @@ export default function DashboardPage() {
             <div className="p-3 bg-green-50 rounded-lg">
               <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Average Processing Time */}
+        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-xl shadow-sm border border-blue-200 hover:shadow-md transition-shadow">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium text-blue-800">Avg Processing Time</p>
+              <p className="text-3xl font-bold text-blue-900 mt-2">
+                {stats.averageProcessingTime !== undefined && stats.averageProcessingTime > 0
+                  ? `${stats.averageProcessingTime.toFixed(1)}`
+                  : '—'}
+              </p>
+              <p className="text-xs text-blue-700 mt-1 font-medium">
+                {stats.averageProcessingTime !== undefined && stats.averageProcessingTime > 0
+                  ? 'days to process'
+                  : 'No completed apps'}
+              </p>
+            </div>
+            <div className="p-3 bg-blue-100 rounded-lg">
+              <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
           </div>
@@ -596,18 +561,30 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
         {/* Application Status Breakdown */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-3">
             <h2 className="text-lg font-semibold text-gray-900">{getChartTitle()}</h2>
-            <select
-              value={chartView}
-              onChange={(e) => setChartView(e.target.value as 'status' | 'barangay' | 'course' | 'school')}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="status">Application Status</option>
-              <option value="barangay">By Barangay</option>
-              <option value="course">By Course/Program</option>
-              <option value="school">By School</option>
-            </select>
+            <div className="flex gap-2">
+              <select
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value as '7days' | '30days' | '90days' | 'all')}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="7days">Last 7 Days</option>
+                <option value="30days">Last 30 Days</option>
+                <option value="90days">Last 90 Days</option>
+                <option value="all">All Time</option>
+              </select>
+              <select
+                value={chartView}
+                onChange={(e) => setChartView(e.target.value as 'status' | 'barangay' | 'course' | 'school')}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="status">Application Status</option>
+                <option value="barangay">By Barangay</option>
+                <option value="course">By Course/Program</option>
+                <option value="school">By School</option>
+              </select>
+            </div>
           </div>
           <div className="h-64 flex items-center justify-center">
             {stats.totalApplications > 0 ? (

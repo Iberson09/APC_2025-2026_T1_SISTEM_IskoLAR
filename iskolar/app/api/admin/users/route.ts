@@ -1,10 +1,29 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { hasPermission } from '@/lib/auth/roles';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = createRouteHandlerClient({ cookies });
+
+    // Get admin email from auth
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.email) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Check if user has admin permissions (both admin and super_admin can view)
+    const hasAdminPermission = await hasPermission(user.email, 'admin');
+    if (!hasAdminPermission) {
+      return NextResponse.json(
+        { error: 'Only administrators can view user list' },
+        { status: 403 }
+      );
+    }
 
     // Fetch users from the database
     const { data: users, error } = await supabase

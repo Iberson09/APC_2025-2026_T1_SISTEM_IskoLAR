@@ -175,6 +175,18 @@ export default function DashboardPage() {
   });
   const [loading, setLoading] = useState(true);
   const [chartView, setChartView] = useState<'status' | 'barangay' | 'course' | 'school'>('status');
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  // Check if user is super admin
+  useEffect(() => {
+    import('@/lib/auth/currentAdmin').then(({ fetchCurrentAdmin }) => {
+      fetchCurrentAdmin().then((admin) => {
+        if (admin) {
+          setIsSuperAdmin(admin.role.name === 'super_admin');
+        }
+      });
+    });
+  }, []);
 
   // Fetch dashboard data
   useEffect(() => {
@@ -575,6 +587,55 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Super Admin Tools Widget */}
+      {isSuperAdmin && (
+        <div className="mb-8">
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl shadow-md border-2 border-purple-200">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <svg className="w-6 h-6 text-purple-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <h3 className="text-lg font-bold text-purple-900">Super Admin Tools</h3>
+                </div>
+                <p className="text-sm text-purple-700 mb-4">
+                  Manage administrators, system settings, and perform destructive operations.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <a
+                    href="/admin/admin-management"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors cursor-pointer"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    Administrators
+                  </a>
+                  <a
+                    href="/admin/settings"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-white text-purple-700 text-sm font-medium rounded-lg hover:bg-purple-50 border border-purple-300 transition-colors cursor-pointer"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    System Settings
+                  </a>
+                </div>
+              </div>
+              <div className="hidden sm:block">
+                <div className="w-20 h-20 bg-purple-200 rounded-full flex items-center justify-center">
+                  <svg className="w-12 h-12 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 
         APPLICATION STATUS OVERVIEW & PRIORITY ACTIONS

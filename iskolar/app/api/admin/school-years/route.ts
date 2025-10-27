@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { hasPermission } from '@/lib/auth/roles';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -100,33 +101,23 @@ export async function POST(request: Request) {
     }
 
     // Verify the user exists in auth metadata
-  const { data: { users }, error: adminUserError } = await supabaseAdmin.auth.admin.listUsers();
+    const { data: { users }, error: adminUserError } = await supabaseAdmin.auth.admin.listUsers();
     if (adminUserError) {
       console.error('Error listing users for verification:', adminUserError);
       return NextResponse.json({ error: 'Failed to verify user' }, { status: 500 });
     }
 
-  const adminUser = users?.find((u: SupabaseUser) => u.email === adminEmail);
+    const adminUser = users?.find((u: SupabaseUser) => u.email === adminEmail);
     if (!adminUser) {
       return NextResponse.json({ error: 'Admin user not found' }, { status: 404 });
     }
 
-    // Ensure the user is a super_admin in the admin table
-    const { data: adminData, error: adminError } = await supabaseAdmin
-      .from('admin')
-      .select('role_id')
-      .eq('email_address', adminEmail)
-      .single();
-
-    if (adminError || !adminData) {
-      console.error('Error fetching admin row:', adminError);
-      return NextResponse.json({ error: 'Failed to verify admin role' }, { status: 500 });
-    }
-
-    // This GUID is used elsewhere to identify super_admins
-    const SUPER_ADMIN_ROLE_ID = '4f53ccf0-9d4a-4345-8061-50a1e728494d';
-    if (adminData.role_id !== SUPER_ADMIN_ROLE_ID) {
-      return NextResponse.json({ error: 'Only super administrators can create academic years' }, { status: 403 });
+    // Check if user has admin permissions using role guard
+    const hasAdminPermission = await hasPermission(adminEmail, 'admin');
+    if (!hasAdminPermission) {
+      return NextResponse.json({ 
+        error: 'Only administrators can create academic years' 
+      }, { status: 403 });
     }
 
     // Create a client for the specific admin user to verify their password

@@ -1,14 +1,57 @@
+
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/useAuth';
+import { useEffect, useState } from 'react';
+import { fetchCurrentAdmin } from '@/lib/auth/currentAdmin';
+import { roleDisplay, roleSubtitle, canManageAdmins, type AdminRoleName } from '@/lib/auth/roles';
 
 const AdminSidebar = () => {
   const pathname = usePathname();
   const router = useRouter();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
+  const [title, setTitle] = useState('Administrator');
+  const [subtitle, setSubtitle] = useState('Application Management');
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const admin = await fetchCurrentAdmin();
+        if (!mounted) return;
+        
+        if (!admin) {
+          console.warn('AdminSidebar: fetchCurrentAdmin returned null');
+          setLoading(false);
+          return;
+        }
+        
+        console.log('AdminSidebar: admin data received:', admin);
+        const roleName = admin.role.name;
+        const newTitle = roleDisplay(roleName);
+        const newSubtitle = roleSubtitle(roleName);
+        
+        console.log('AdminSidebar: setting title to:', newTitle, 'subtitle:', newSubtitle);
+        
+        setTitle(newTitle);
+        setSubtitle(newSubtitle);
+        setIsSuperAdmin(canManageAdmins(roleName));
+        setLoading(false);
+      } catch (error) {
+        console.error('AdminSidebar: error in useEffect:', error);
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
 
   const handleSignOut = async () => {
     try {
@@ -106,6 +149,32 @@ const AdminSidebar = () => {
     },
   ];
 
+  // Super admin only navigation items
+  const superAdminNavItems = isSuperAdmin ? [
+    {
+      label: 'Administrators',
+      href: '/admin/admin-management',
+      icon: (
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+          <path
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M12 15a3 3 0 100-6 3 3 0 000 6z"
+          />
+          <path
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"
+          />
+        </svg>
+      ),
+    },
+  ] : [];
+
   return (
     <aside className="fixed top-0 left-0 z-50 h-screen w-64 font-geist flex flex-col border-r bg-white border-gray-300 text-sm shadow-[4px_0_6px_-2px_rgba(0,0,0,0.1)]">
       {/* Logo Header */}
@@ -183,6 +252,41 @@ const AdminSidebar = () => {
             </Link>
           );
         })}
+
+        {/* Super Admin Only Section */}
+        {isSuperAdmin && (
+          <>
+            <div className="py-2 px-3 mt-6">
+              <span className="text-xs font-medium text-purple-600 uppercase tracking-wider">Super Admin</span>
+            </div>
+            
+            {superAdminNavItems.map((item) => {
+              const isActive = pathname === item.href || pathname.startsWith(item.href);
+
+              return (
+                <Link href={item.href} key={item.label}>
+                  <div
+                    className={`group flex items-center gap-3 py-2.5 px-4 rounded-xl transition-all duration-200 cursor-pointer ${
+                      isActive
+                        ? 'bg-purple-50 text-purple-600'
+                        : 'text-purple-600 hover:bg-purple-50/80'
+                    }`}
+                  >
+                    <span className={`transition-colors duration-200 ${isActive ? 'text-purple-600' : 'text-purple-400 group-hover:text-purple-600'}`}>
+                      {item.icon}
+                    </span>
+                    <span className={`text-sm font-medium transition-colors duration-200 ${
+                      isActive ? 'text-purple-600' : 'text-purple-700 group-hover:text-purple-900'
+                    }`}>{item.label}</span>
+                    {isActive && (
+                      <div className="ml-auto w-1.5 h-1.5 rounded-full bg-purple-600" />
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       {/* Administrator Profile and Sign Out */}
@@ -195,8 +299,12 @@ const AdminSidebar = () => {
               </svg>
             </div>
             <div>
-              <div className="font-medium text-gray-900">Administrator</div>
-              <div className="text-sm text-gray-500">System Management</div>
+              <div className="font-medium text-gray-900">
+                {loading ? '...' : title}
+              </div>
+              <div className="text-sm text-gray-500">
+                {loading ? '' : subtitle}
+              </div>
             </div>
           </div>
           

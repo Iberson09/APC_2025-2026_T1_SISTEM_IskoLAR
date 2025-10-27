@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { supabaseBrowser } from '@/lib/supabase/browser';
 
 export default function AdminSignInPage() {
   const router = useRouter();
@@ -40,6 +40,7 @@ export default function AdminSignInPage() {
 
       // Set the session in Supabase client
       if (result.session) {
+        const supabase = supabaseBrowser();
         await supabase.auth.setSession(result.session);
       }
 

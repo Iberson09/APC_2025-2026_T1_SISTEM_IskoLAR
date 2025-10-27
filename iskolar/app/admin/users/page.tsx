@@ -1,7 +1,10 @@
+
 "use client";
 import React, { useState, useEffect, useMemo } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/solid';
 import { AdjustmentsHorizontalIcon, UserIcon } from '@heroicons/react/24/outline';
+import { fetchCurrentAdmin } from '@/lib/auth/currentAdmin';
+import { canCreateUsers, canEditOrDeleteUsers, canArchiveUsers, type AdminRoleName } from '@/lib/auth/roles';
 
 // --- TYPE DEFINITIONS ---
 type User = {
@@ -14,6 +17,7 @@ type User = {
   last_login: string | null;
   created_at: string;
   updated_at: string | null;
+  is_active?: boolean;
 };
 
 interface UserFilters {
@@ -39,6 +43,31 @@ export default function UserManagementPage() {
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
+  
+  // Role-based permissions
+  const [adminRole, setAdminRole] = useState<AdminRoleName | null>(null);
+  const [permissions, setPermissions] = useState({
+    canCreate: false,
+    canEdit: false,
+    canDelete: false,
+    canArchive: false,
+  });
+
+  useEffect(() => {
+    (async () => {
+      const admin = await fetchCurrentAdmin();
+      if (admin) {
+        const role = admin.role.name;
+        setAdminRole(role);
+        setPermissions({
+          canCreate: canCreateUsers(role),
+          canEdit: canEditOrDeleteUsers(role),
+          canDelete: canEditOrDeleteUsers(role),
+          canArchive: canArchiveUsers(role),
+        });
+      }
+    })();
+  }, []);
 
   const fetchUsers = async () => { 
     setIsLoading(true); 
@@ -151,16 +180,16 @@ export default function UserManagementPage() {
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ status: 'inactive' })
+          body: JSON.stringify({ action: 'archive' })
         });
         const data = await response.json();
         
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to deactivate user');
+          throw new Error(data.error || 'Failed to archive user');
         }
         
         setNotification({ 
-          message: 'User deactivated successfully', 
+          message: 'User archived successfully', 
           type: 'success' 
         });
       }
@@ -219,6 +248,17 @@ export default function UserManagementPage() {
                 <AdjustmentsHorizontalIcon className="h-5 w-5 text-gray-500" />
                 Filter
               </button>
+              {permissions.canCreate && (
+                <button
+                  onClick={() => window.location.href = '/admin/users/create'}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors cursor-pointer"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Create User
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -278,18 +318,30 @@ export default function UserManagementPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                      <button
-                        onClick={() => handleOpenConfirmModal(user, 'deactivate')}
-                        className="cursor-pointer text-yellow-600 hover:text-yellow-900 bg-yellow-100 hover:bg-yellow-200 px-3 py-1 rounded-md"
-                      >
-                        Deactivate
-                      </button>
-                      <button
-                        onClick={() => handleOpenConfirmModal(user, 'delete')}
-                        className="cursor-pointer text-red-600 hover:text-red-900 bg-red-100 hover:bg-red-200 px-3 py-1 rounded-md"
-                      >
-                        Delete
-                      </button>
+                      {permissions.canArchive && user.is_active !== false && (
+                        <button
+                          onClick={() => handleOpenConfirmModal(user, 'deactivate')}
+                          className="cursor-pointer text-yellow-600 hover:text-yellow-900 bg-yellow-100 hover:bg-yellow-200 px-3 py-1 rounded-md"
+                        >
+                          Archive
+                        </button>
+                      )}
+                      {permissions.canEdit && (
+                        <button
+                          onClick={() => window.location.href = `/admin/users/${user.user_id}/edit`}
+                          className="cursor-pointer text-blue-600 hover:text-blue-900 bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded-md"
+                        >
+                          Edit
+                        </button>
+                      )}
+                      {permissions.canDelete && (
+                        <button
+                          onClick={() => handleOpenConfirmModal(user, 'delete')}
+                          className="cursor-pointer text-red-600 hover:text-red-900 bg-red-100 hover:bg-red-200 px-3 py-1 rounded-md"
+                        >
+                          Delete
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

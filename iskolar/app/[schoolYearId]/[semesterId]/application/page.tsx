@@ -13,6 +13,7 @@ const inputClassName = "w-full border border-gray-300 rounded-lg px-3 py-2.5 tex
 export default function ApplicationPage() {
   const params = useParams();
   const semesterId = params.semesterId as string;
+  const schoolYearId = params.schoolYearId as string;
 
   // Track if user has already submitted an application
   const [hasExistingApplication, setHasExistingApplication] = useState(false);
@@ -494,7 +495,7 @@ export default function ApplicationPage() {
               You have already submitted an application for this semester. Please visit the status page to check your application status.
             </p>
             <a 
-              href="/academicyearID/semesterID/status" 
+              href={`/${schoolYearId}/${semesterId}/status`}
               className="inline-block bg-[#2196f3] text-white px-8 py-3 rounded-lg font-medium shadow-md hover:bg-[#1976d2] hover:shadow-lg transition-all duration-200"
             >
               Check Application Status

@@ -13,6 +13,7 @@ const inputClassName = "w-full border border-gray-300 rounded-lg px-3 py-2.5 tex
 export default function ApplicationPage() {
   const params = useParams();
   const semesterId = params.semesterId as string;
+  const schoolYearId = params.schoolYearId as string;
 
   // Track if user has already submitted an application
   const [hasExistingApplication, setHasExistingApplication] = useState(false);
@@ -494,7 +495,7 @@ export default function ApplicationPage() {
               You have already submitted an application for this semester. Please visit the status page to check your application status.
             </p>
             <a 
-              href="/academicyearID/semesterID/status" 
+              href={`/${schoolYearId}/${semesterId}/status`}
               className="inline-block bg-[#2196f3] text-white px-8 py-3 rounded-lg font-medium shadow-md hover:bg-[#1976d2] hover:shadow-lg transition-all duration-200"
             >
               Check Application Status
@@ -867,25 +868,50 @@ export default function ApplicationPage() {
                 Note: Maximum file size is 10MB. Supported file types: PDF, JPEG, PNG.
               </div>
             </div>
+            
+            {/* Document Upload Guidelines */}
+            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start">
+                <svg
+                  className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <div>
+                  <p className="text-sm font-medium text-blue-900">
+                    Document Upload Guidelines
+                  </p>
+                  <p className="text-sm text-blue-700 mt-1">
+                    Max file size: <strong>10MB</strong>. Allowed formats:{" "}
+                    <strong>PDF, PNG, JPG, JPEG</strong>
+                  </p>
+                </div>
+              </div>
+            </div>
+            
             <div className="grid grid-cols-1 gap-5">
               {/* PSA Birth Certificate */}
               <div>
                 <label className="block text-xs text-gray-600 mb-1 font-medium">PSA Birth Certificate</label>
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-3 rounded-lg px-4 py-3 bg-[#F8F9FB] border-2 border-dashed border-[#90caf9]">
-                    <input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      className="cursor-pointer block w-full text-sm text-gray-700 bg-transparent file:mr-3 file:py-1 file:px-2 file:rounded file:border-0 file:bg-[#e3f2fd] file:text-[#1976d2] file:font-medium"
-                      onChange={async (e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          const file = e.target.files[0];
-                          if (validateFile(file)) {
-                            await handleFileUpload(file, 'birthCert');
-                          } else {
-                            e.target.value = '';
-                            setBirthCertFileName('');
-                          }
+                <div className="flex items-center gap-3 rounded-lg px-4 py-3 bg-[#F8F9FB] border-2 border-dashed border-[#90caf9]">
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    className="cursor-pointer block w-full text-sm text-gray-700 bg-transparent file:mr-3 file:py-1 file:px-2 file:rounded file:border-0 file:bg-[#e3f2fd] file:text-[#1976d2] file:font-medium"
+                    onChange={async (e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        const file = e.target.files[0];
+                        if (validateFile(file)) {
+                          await handleFileUpload(file, 'birthCert');
+                        } else {
+                          e.target.value = '';
+                          setBirthCertFileName('');
                         }
                       }}
                     />
@@ -988,20 +1014,18 @@ export default function ApplicationPage() {
               {/* Certificate of Registration */}
               <div>
                 <label className="block text-xs text-gray-600 mb-1 font-medium">Certificate of Registration</label>
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-3 rounded-lg px-4 py-3 bg-[#F8F9FB] border-2 border-dashed border-[#90caf9]">
-                    <input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      className="cursor-pointer block w-full text-sm text-gray-700 bg-transparent file:mr-3 file:py-1 file:px-2 file:rounded file:border-0 file:bg-[#e3f2fd] file:text-[#1976d2] file:font-medium"
-                      onChange={async e => {
-                        if (e.target.files && e.target.files[0]) {
-                          if (validateFile(e.target.files[0])) {
-                            await handleFileUpload(e.target.files[0], 'regCert');
-                          } else {
-                            e.target.value = '';
-                            setRegFileName('');
-                          }
+                <div className="flex items-center gap-3 rounded-lg px-4 py-3 bg-[#F8F9FB] border-2 border-dashed border-[#90caf9]">
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    className="cursor-pointer block w-full text-sm text-gray-700 bg-transparent file:mr-3 file:py-1 file:px-2 file:rounded file:border-0 file:bg-[#e3f2fd] file:text-[#1976d2] file:font-medium"
+                    onChange={async e => {
+                      if (e.target.files && e.target.files[0]) {
+                        if (validateFile(e.target.files[0])) {
+                          await handleFileUpload(e.target.files[0], 'regCert');
+                        } else {
+                          e.target.value = '';
+                          setRegFileName('');
                         }
                       }}
                     />

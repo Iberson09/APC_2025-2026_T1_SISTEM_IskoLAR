@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
@@ -25,6 +25,7 @@ interface SchoolYear {
 
 const ScholarSidebar = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const { signOut } = useAuth();
   const [userName, setUserName] = useState({ firstName: '', lastName: '' });
   const [isProgramOpen, setIsProgramOpen] = useState(false);
@@ -36,11 +37,15 @@ const ScholarSidebar = () => {
 
   const handleLogout = async () => {
     try {
+      console.log('Signing out...');
       await signOut();
-      // The auth state change will trigger a redirect in useAuth
-      // the protection on the routes and redirect appropriately
+      console.log('Sign out successful, redirecting...');
+      // Redirect to sign in page after successful sign out
+      router.push('/auth/sign-in');
     } catch (error) {
       console.error('Error during logout:', error);
+      // Even if there's an error, try to redirect to sign in
+      router.push('/auth/sign-in');
     }
   };
 
@@ -168,8 +173,12 @@ const ScholarSidebar = () => {
             });
           }
         }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
+      } catch (error: unknown) {
+        // Silently handle AuthSessionMissingError during sign out
+        const err = error as { message?: string; name?: string };
+        if (err?.message !== 'Auth session missing!' && err?.name !== 'AuthSessionMissingError') {
+          console.error('Error fetching user data:', error);
+        }
       }
     };
 

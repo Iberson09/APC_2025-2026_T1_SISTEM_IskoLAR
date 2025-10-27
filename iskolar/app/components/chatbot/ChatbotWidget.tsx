@@ -6,6 +6,7 @@ import { InputForm } from './InputForm';
 import type { Message } from './types';
 import { Role } from './types';
 import { supabase } from '@/lib/supabaseClient';
+import { extractPageContext } from './pageContext';
 
 export const ChatbotWidget: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,7 +14,7 @@ export const ChatbotWidget: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: Role.BOT,
-      content: "Hello there! I'm ISKAi, your friendly assistant for the IskoLAR system. I'm here to help you with any questions you have. How can I assist you today?",
+      content: "Hey there! 👋 I'm ISKAi, your friendly guide to everything IskoLAR! Whether you need help with applications, want to check your status, or just have questions about the system, I've got your back. What can I help you with today?",
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
@@ -46,6 +47,10 @@ export const ChatbotWidget: React.FC = () => {
     setIsLoading(true);
 
     try {
+      // Extract current page context
+      const pageContext = extractPageContext();
+      console.log('[ISKAi] Page context:', pageContext);
+
       // Get the session token for authenticated requests
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -63,7 +68,8 @@ export const ChatbotWidget: React.FC = () => {
         headers,
         body: JSON.stringify({ 
           messages: newMessages,
-          query 
+          query,
+          pageContext // Send page context to AI
         }),
       });
 
